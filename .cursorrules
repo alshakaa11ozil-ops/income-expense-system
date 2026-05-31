@@ -1,0 +1,283 @@
+# ============================================================
+# PROJECT: Income/Expense Management System — v2
+# CURSOR AI RULES
+# VERSION: 2.0 — Includes RBAC, soft delete, Gemini AI fixes
+# ============================================================
+
+
+# ────────────────────────────────────────────────────────────
+# 1. PROJECT CONTEXT
+# ────────────────────────────────────────────────────────────
+
+University project — Q13 Income/Expense Management System.
+Instructor grades on: MVC separation, validation, security,
+CRUD functionality, and proper database design.
+
+Stack:
+  Frontend  : React 18 + Tailwind CSS + Recharts
+  Backend   : Node.js + Express.js
+  ORM       : Prisma
+  Database  : PostgreSQL
+  Auth      : JWT access token (15 min) + Refresh token (7 days, httpOnly cookie)
+  Password  : bcrypt, saltRounds = 12
+  AI        : Google Gemini Flash 1.5 (with DB caching + daily limits)
+
+Roles: USER (default, own records only) | ADMIN (all users, audit, restore)
+
+
+# ────────────────────────────────────────────────────────────
+# 2. NAMING CONVENTION — SNAKE_CASE
+# ────────────────────────────────────────────────────────────
+
+RULE: snake_case for ALL identifiers across the codebase.
+
+  ✅ CORRECT
+    const user_id = req.user.id
+    const record_list = await get_records()
+    const is_valid = validate_amount(amount)
+    const access_token = sign_jwt(payload)
+    function create_record(user_id, record_data) {}
+
+  ❌ WRONG (never generate these)
+    const userId = req.user.id
+    const recordList = await getRecords()
+
+  EXCEPTIONS (framework-imposed, not your naming):
+    - React component names: PascalCase only (RecordTable, LoginPage)
+    - Prisma model names: PascalCase (User, Record, AiCache)
+    - Environment variables: SCREAMING_SNAKE (JWT_SECRET, GEMINI_API_KEY)
+    - React Hook setter names: camelCase is acceptable ONLY for the setter
+      Example: const [record_list, setRecordList] = useState([])
+                         ↑ snake_case   ↑ camelCase setter — both acceptable
+
+
+# ────────────────────────────────────────────────────────────
+# 3. COMMENT STANDARD — MANDATORY ON EVERY FUNCTION
+# ────────────────────────────────────────────────────────────
+
+Every function MUST have this block comment before it. No exceptions.
+
+  /*
+   * FUNCTION : function_name
+   * ─────────────────────────────────────────────────────────
+   * WHY      : Why does this function exist? What problem
+   *            does it solve in the system?
+   *
+   * HOW      : 1. Step one
+   *            2. Step two
+   *            3. Step three
+   *
+   * @param   {type}   param_name   - Description
+   * @returns {type}                - What it returns
+   * @throws  {Error}               - When and why
+   * ─────────────────────────────────────────────────────────
+   */
+
+Inline comments: explain WHY not WHAT.
+  Bad : // increment i
+  Good: // skip soft-deleted records — must not appear in user results
+
+
+# ────────────────────────────────────────────────────────────
+# 4. FILE HEADER — MANDATORY ON EVERY FILE
+# ────────────────────────────────────────────────────────────
+
+  /*
+   * ============================================================
+   * FILE    : filename.js
+   * LAYER   : Controller | Service | Model | Route | Middleware
+   * PURPOSE : One sentence describing what this file owns
+   * DEPENDS : List of imports / dependencies
+   * ============================================================
+   * EXPORTS:
+   *   - function_one  : short description
+   *   - function_two  : short description
+   * ============================================================
+   */
+
+
+# ────────────────────────────────────────────────────────────
+# 5. MVC LAYER RULES — STRICT SEPARATION
+# ────────────────────────────────────────────────────────────
+
+CONTROLLER (src/controllers/)
+  ✅ Parse req, call ONE service function, send res
+ 
+  ❌ NEVER write business logic
+  ❌ NEVER call Prisma or model functions directly
+  ❌ NEVER validate input
+
+SERVICE (src/services/)
+  ✅ All validation, business rules, duplicate checks
+  ✅ Calls ONLY model functions — never Prisma directly
+  ❌ NEVER import PrismaClient or database config
+  ❌ NEVER touch req or res
+  ❌ NEVER use HTTP status codes
+
+  ARCHITECTURE CHECK COMMENT — add this to top of every service file:
+  // ARCHITECTURE GUARD: This file must never import PrismaClient.
+  // All DB access goes through functions in src/models/*.js only.
+
+MODEL (src/models/)
+  ✅ All Prisma queries
+  ✅ Returns raw DB data
+  ❌ NEVER contain business logic
+  ❌ NEVER validate inputs
+  ❌ NEVER import from services
+
+
+# ────────────────────────────────────────────────────────────
+# 6. CURRENCY / DECIMAL RULE — CRITICAL
+# ────────────────────────────────────────────────────────────
+
+PROBLEM: JavaScript IEEE 754 floating-point: 0.1 + 0.2 = 0.30000000000000004
+         This WILL cause grading failures on financial calculations.
+
+RULE:
+  1. Prisma stores amount as Decimal — leave it as Decimal in models
+  2. In services: use decimal.js library for all arithmetic
+       import Decimal from 'decimal.js'
+       const total = new Decimal(record.amount).plus(other.amount)
+  3. At serialization only: convert to string
+       amount: record.amount.toFixed(2)    // "1500.00" — string, not number
+  4. Frontend: display as string, NEVER do math on it
+
+  ❌ NEVER:  Number(record.amount)  or  parseFloat(record.amount)
+  ❌ NEVER:  record.amount + other.amount  (standard JS addition on decimals)
+  ✅ ALWAYS: new Decimal(record.amount).plus(new Decimal(other.amount))
+
+
+# ────────────────────────────────────────────────────────────
+# 7. SOFT DELETE RULES
+# ────────────────────────────────────────────────────────────
+
+Records are NEVER hard-deleted by users. Only ADMINs can hard-delete.
+
+SOFT DELETE:
+  - Sets deleted_at = DateTime.now() and deleted_by = user_id
+  - Does NOT remove the row from the database
+
+EVERY record query MUST include this filter:
+  where: { user_id: user_id, deleted_at: null }
+
+  ❌ WRONG:  where: { id: record_id }
+  ✅ CORRECT: where: { id: record_id, user_id: user_id, deleted_at: null }
+
+RESTORE (ADMIN only):
+  - Sets deleted_at = null, deleted_by = null
+
+HARD DELETE (ADMIN only, irreversible):
+  - Actually calls prisma.record.delete()
+  - Only callable from admin_controller
+
+
+# ────────────────────────────────────────────────────────────
+# 8. ROLE-BASED ACCESS CONTROL
+# ────────────────────────────────────────────────────────────
+
+Middleware chain for protected routes:
+  verify_access_token → check_user_is_active → attach_user
+
+For ADMIN-only routes, add:
+  verify_access_token → check_user_is_active → attach_user → require_role(['ADMIN'])
+
+USER role CAN:
+  - CRUD their own records (soft delete only)
+  - View their own dashboard / analytics
+  - Use AI features (up to 10/day)
+  - Export their own records
+
+ADMIN role CAN (additionally):
+  - GET /api/admin/users               — list all users
+  - PATCH /api/admin/users/:id/toggle  — activate/deactivate
+  - GET /api/admin/records/:user_id    — read-only audit view
+  - POST /api/admin/records/:id/restore — restore soft-deleted
+  - DELETE /api/admin/records/:id/hard — permanent delete
+  - GET /api/admin/analytics           — system-wide stats
+  - GET /api/admin/ai/usage            — AI usage stats
+
+NEVER allow a USER to access /api/admin/* routes.
+NEVER allow a user to read/edit/delete another user's records.
+
+
+# ────────────────────────────────────────────────────────────
+# 9. AI / GEMINI RULES
+# ────────────────────────────────────────────────────────────
+
+Model   : gemini-1.5-flash
+Package : @google/generative-ai
+Key     : process.env.GEMINI_API_KEY
+
+ALWAYS set in generationConfig:
+  responseMimeType: 'application/json'   // forces structured output
+  temperature: 0.3                       // consistent, reliable responses
+  maxOutputTokens: 1024
+
+ALWAYS validate the JSON response with Zod before returning it.
+Gemini sometimes ignores schema instructions — validation catches this.
+
+CACHE FIRST pattern (mandatory in ai_service.js):
+  1. Build cache_key = SHA-256(user_id + feature + normalized_inputs)
+  2. Check AiCache table for matching cache_key where expires_at > now
+  3. If CACHE HIT: increment hit_count, log to AiUsage (was_cached=true), return cached response
+  4. If CACHE MISS: check daily non-cached usage count for user
+  5. If limit reached: throw 429 with reset time
+  6. Call Gemini API, validate response with Zod
+  7. Store in AiCache with appropriate expires_at TTL
+  8. Log to AiUsage (was_cached=false)
+  9. Return response
+
+CONTEXT INJECTION — NEVER send raw record arrays to Gemini.
+Build a summary object instead:
+  {
+    period: "last 90 days",
+    total_income: "4500.00",
+    total_expense: "3200.00",
+    net_balance: "1300.00",
+    by_category: [{ category, total, count }],
+    monthly_summary: [{ month, income, expense }]
+  }
+
+Daily limits:
+  USER  → 10 non-cached requests per day
+  ADMIN → 50 non-cached requests per day
+  Cache hits → FREE, do NOT count toward limit
+
+
+# ────────────────────────────────────────────────────────────
+# 10. SECURITY RULES
+# ────────────────────────────────────────────────────────────
+
+  - bcrypt hash password before saving (saltRounds = 12)
+  - NEVER return password field in any response (use Prisma select to exclude)
+  - Access token in React state ONLY — never localStorage
+  - Refresh token in httpOnly cookie ONLY
+  - Refresh tokens stored HASHED in DB (bcrypt)
+  - Every record query: WHERE user_id = ? AND deleted_at IS NULL
+  - Sanitize all string inputs (strip HTML tags)
+  - Rate limit: login 10/IP/15min, register 5/IP/hour
+  - Ownership check: user can never access another user's data
+
+
+# ────────────────────────────────────────────────────────────
+# 11. API RESPONSE FORMAT
+# ────────────────────────────────────────────────────────────
+
+  Success (single):  { "success": true, "data": { ...item } }
+  Success (list):    { "success": true, "data": [...],
+                       "pagination": { total, page, limit, total_pages } }
+  Error:             { "success": false, "error": "message", "code": "OPTIONAL_CODE" }
+
+
+# ────────────────────────────────────────────────────────────
+# 12. WHAT TO DO WHEN GENERATING CODE
+# ────────────────────────────────────────────────────────────
+
+  1. Add file header block first
+  2. Add function comment block (WHY / HOW / params)
+  3. Write function using snake_case
+  4. If service file: add ARCHITECTURE GUARD comment at top
+  5. If record query: include deleted_at: null and user_id filter
+  6. If currency math: use decimal.js — never native JS addition
+  7. If AI call: check cache first, validate response with Zod
+  8. If admin route: apply require_role(['ADMIN']) middleware
