@@ -29,7 +29,7 @@ const { send_success, send_error } = require('../utils/api_response');
 async function get_goals(req, res) {
     try {
         const goals = await budget_goal_service.get_monthly_goals(
-            req.user.user_id,
+            req.user.id,
             Number(req.query.month),
             Number(req.query.year)
         );
@@ -69,7 +69,7 @@ async function get_write_window_handler(req, res) {
 async function save_goals(req, res) {
     try {
         const goals = await budget_goal_service.save_goals_for_month(
-            req.user.user_id,
+            req.user.id,
             req.body.goals,
             req.body.month,
             req.body.year,
@@ -93,7 +93,7 @@ async function save_goals(req, res) {
 async function delete_goal(req, res) {
     try {
         const goal = await budget_goal_service.remove_goal(
-            req.user.user_id,
+            req.user.id,
             req.params.id,
             req.query.month,
             req.query.year

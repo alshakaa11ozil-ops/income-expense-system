@@ -19,6 +19,7 @@
 
 const admin_model = require('../models/admin_model');
 const { get_pagination_params, format_paginated_response } = require('../utils/pagination');
+const Decimal = require('decimal.js');
 
 const VALID_ROLES = ['USER', 'ADMIN'];
 
@@ -160,10 +161,112 @@ async function get_user_detail(target_user_id) {
     return user;
 }
 
+/*
+ * FUNCTION : get_audit_records
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Admin reviews ALL records belonging to a specific user,
+ *            including soft-deleted ones, for audit and restore purposes.
+ *            Read-only — the admin sees the data but cannot edit records
+ *            that belong to another user (data integrity principle).
+ *
+ * HOW      : 1. Verify the target user exists first via admin_model
+ *               WHY: without this, a non-existent user_id returns an
+ *               empty array which is indistinguishable from "user has
+ *               no records" — a 404 is clearer and more honest
+ *            2. Parse pagination from query_params (page, limit)
+ *            3. Call admin_model.get_all_records_for_user — this query
+ *               deliberately skips deleted_at and ownership filters
+ *            4. Serialize each record's Decimal amount to "1500.00" string
+ *               WHY: Decimal objects cannot be JSON.stringify'd directly
+ *            5. Return paginated response shape
+ *
+ * @param   {string} target_user_id  - ID of the user whose records to audit
+ * @param   {object} query_params    - { page, limit } from req.query
+ * @returns {{ data: Record[], pagination: object }}
+ * @throws  {Error} with status 404 if target user does not exist
+ * ─────────────────────────────────────────────────────────
+ */
+async function get_audit_records(target_user_id, query_params) {
+    // Verify target user exists before querying their records.
+    // A missing user returns null — throw 404 to distinguish from "user has no records"
+    const target_user = await admin_model.get_user_by_id_admin(target_user_id);
+    if (!target_user) {
+        const err = new Error('User not found');
+        err.status = 404;
+        throw err;
+    }
+
+    const { skip, take, page, limit } = get_pagination_params(query_params, 20);
+    // WHY default 20 (not 10): admin audit tables are wider and show more
+    // columns — more rows per page means fewer clicks to review all records
+
+    const [rows, total] = await admin_model.get_all_records_for_user(
+        target_user_id,
+        skip,
+        take
+    );
+
+    // Serialize Decimal amounts to strings — Decimal objects break JSON serialization
+    // and floating-point math on the frontend is forbidden by the currency rules
+    const serialized_records = rows.map((record) => ({
+        ...record,
+        amount: record.amount.toFixed(2),
+    }));
+
+    return format_paginated_response(serialized_records, total, page, limit);
+}
+
+/*
+ * FUNCTION : get_dashboard_stats
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Provides the admin panel overview tab with operational platform
+ *            health metrics. Answers "how is the platform doing today?"
+ *            NOT "how much money is flowing?" (that is analytics_service).
+ *
+ * HOW      : 1. Call admin_model.get_admin_dashboard_stats() — gets 8 counts
+ *               from a single DB transaction
+ *            2. Calculate cache_hit_ratio as a percentage string
+ *               WHY decimal.js: percentage calculations have the same
+ *               IEEE 754 floating-point problem as financial math.
+ *               33 / 100 * 100 = 33.00000000000003 in plain JS.
+ *               decimal.js gives clean "33.33" every time.
+ *            3. Return all stats in a flat object for the frontend
+ *
+ * @returns {object}
+ *   { total_users, active_users, new_users_today,
+ *     total_active_records, records_today, deleted_today,
+ *     ai_requests_today, cache_hits_today, cache_hit_ratio }
+ * ─────────────────────────────────────────────────────────
+ */
+async function get_dashboard_stats() {
+    const stats = await admin_model.get_admin_dashboard_stats();
+
+    // Calculate what percentage of today's AI requests were cache hits
+    // Use decimal.js — same precision rules apply as financial math
+    let cache_hit_ratio;
+    if (stats.ai_requests_today === 0) {
+        // Avoid division by zero — ratio is meaningless with no requests
+        cache_hit_ratio = '0.00';
+    } else {
+        cache_hit_ratio = new Decimal(stats.cache_hits_today)
+            .dividedBy(stats.ai_requests_today)
+            .times(100)
+            .toFixed(2);
+        // Result is a string like "33.33" — never a raw JS float
+    }
+
+    return {
+        ...stats,
+        cache_hit_ratio,
+    };
+}
+
 module.exports = {
     promote_user,
     list_users,
     toggle_account,
     add_note,
     get_user_detail,
+    get_audit_records,
+    get_dashboard_stats,
 };

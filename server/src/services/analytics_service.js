@@ -22,6 +22,7 @@
 
 const Decimal = require('decimal.js');
 const analytics_model = require('../models/analytics_model');
+const category_model = require('../models/category_model');
 
 /*
  * HELPER : to_decimal
@@ -95,57 +96,76 @@ function format_date_key(date) {
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
-
 /*
- * FUNCTION : get_summary
+ * FUNCTION : get_summary (UPDATED — dual mode)
  * ─────────────────────────────────────────────────────────
- * WHY      : Produces the three dashboard summary cards for a given month:
- *            total income, total expense, and net balance.
- *            net_balance uses Decimal subtraction — the JS minus operator
- *            produces floating-point errors on financial values (e.g.
- *            1500.10 - 500.10 = 999.9999999999999 in native JS).
+ * WHY      : Two callers need summary totals with different scopes:
+ *            Mode A — dashboard cards:  { month, year }
+ *            Mode B — records page bar: { date_from, date_to }
+ *            One function, same return shape, controller detects mode.
  *
- * HOW      : 1. Call analytics_model.get_totals_by_type for the month
- *            2. Find income and expense rows from groupBy result
- *               (either may be absent if user has no records of that type)
- *            3. Default missing amounts to Decimal(0)
- *            4. Compute net_balance = total_income.minus(total_expense)
- *            5. Sum record_count from both type buckets
- *            6. Serialize all Decimals with .toFixed(2) before returning
+ * HOW      : 1. If params.date_from AND params.date_to → Mode B
+ *               Validate date strings, call get_totals_for_range
+ *            2. Otherwise → Mode A, call get_totals_by_type
+ *            3. Aggregate with Decimal either way
  *
- * @param   {string} user_id  - Authenticated user's ID
- * @param   {number} month    - Month number 1–12
- * @param   {number} year     - Four-digit year
- * @returns {Promise<Object>} - { total_income, total_expense, net_balance,
- *                               record_count, month, year } — amounts as strings
- * @throws  {Error}           - Propagates Prisma errors from model layer
+ * @param   {string} user_id
+ * @param   {object} params
+ *   Mode A: { month: number, year: number }
+ *   Mode B: { date_from: string, date_to: string }
+ * @returns {{ total_income, total_expense, net_balance, record_count }}
  * ─────────────────────────────────────────────────────────
  */
-async function get_summary(user_id, month, year) {
-    const raw_totals = await analytics_model.get_totals_by_type(user_id, month, year);
+async function get_summary(user_id, params) {
+    let rows;
 
-    // Find each type's bucket — either may be absent with no records
-    const income_row = raw_totals.find(row => row.type === 'income');
-    const expense_row = raw_totals.find(row => row.type === 'expense');
+    if (params.date_from !== undefined && params.date_to !== undefined) {
+        // Mode B — arbitrary date range
+        const from = new Date(params.date_from);
+        const to = new Date(params.date_to);
 
-    // Convert Prisma Decimal (or null) to decimal.js — never use JS Number()
-    const total_income = to_decimal(income_row?._sum?.amount);
-    const total_expense = to_decimal(expense_row?._sum?.amount);
+        if (isNaN(from.getTime())) {
+            const err = new Error("Invalid date for 'date_from'");
+            err.status = 400; throw err;
+        }
+        if (isNaN(to.getTime())) {
+            const err = new Error("Invalid date for 'date_to'");
+            err.status = 400; throw err;
+        }
+        if (from > to) {
+            const err = new Error('date_from must not be after date_to');
+            err.status = 400; throw err;
+        }
 
-    // Decimal subtraction — critical: native JS minus would produce drift
-    const net_balance = total_income.minus(total_expense);
+        // Extend to end-of-day so records on date_to are included
+        to.setHours(23, 59, 59, 999);
 
-    const income_count = income_row?._count?.id ?? 0;
-    const expense_count = expense_row?._count?.id ?? 0;
-    const record_count = income_count + expense_count;
+        rows = await analytics_model.get_totals_for_range(user_id, from, to);
+    } else {
+        // Mode A — calendar month
+        const now = new Date();
+        const month = Number(params.month) || (now.getMonth() + 1);
+        const year = Number(params.year) || now.getFullYear();
+        rows = await analytics_model.get_totals_by_type(user_id, month, year);
+    }
+
+    // Aggregate — identical for both modes
+    let total_income = new Decimal(0);
+    let total_expense = new Decimal(0);
+    let record_count = 0;
+
+    for (const row of rows) {
+        const amount = new Decimal(row._sum.amount ?? 0);
+        if (row.type === 'income') total_income = total_income.plus(amount);
+        if (row.type === 'expense') total_expense = total_expense.plus(amount);
+        record_count += row._count.id ?? 0;
+    }
 
     return {
-        total_income: total_income.toFixed(2),   // "4000.00" — string, not number
-        total_expense: total_expense.toFixed(2),  // "2015.00"
-        net_balance: net_balance.toFixed(2),    // "1985.00"
+        total_income: total_income.toFixed(2),
+        total_expense: total_expense.toFixed(2),
+        net_balance: total_income.minus(total_expense).toFixed(2),
         record_count,
-        month,
-        year,
     };
 }
 

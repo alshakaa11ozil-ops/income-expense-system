@@ -62,7 +62,7 @@ async function get_user(req, res) {
  */
 async function toggle_user(req, res) {
     try {
-        const user = await admin_service.toggle_account(req.user.user_id, req.params.id);
+        const user = await admin_service.toggle_account(req.user.id, req.params.id);
         return send_success(res, user);
     } catch (err) {
         const status = err.message === 'User not found' ? 404 : 400;
@@ -80,7 +80,7 @@ async function toggle_user(req, res) {
  */
 async function promote_user(req, res) {
     try {
-        const user = await admin_service.promote_user(req.user.user_id, req.params.id, req.body.role);
+        const user = await admin_service.promote_user(req.user.id, req.params.id, req.body.role);
         return send_success(res, user);
     } catch (err) {
         const status = err.message === 'User not found' ? 404 : 400;
@@ -106,4 +106,59 @@ async function add_note(req, res) {
     }
 }
 
-module.exports = { list_users, get_user, toggle_user, promote_user, add_note };
+/*
+ * FUNCTION : audit_records
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Admin needs to view all records for a specific user including
+ *            soft-deleted ones — the normal GET /api/records endpoint only
+ *            returns the requesting user's own non-deleted records, which
+ *            is the wrong behavior for an admin audit view.
+ *
+ * HOW      : 1. Extract target user_id from route params (not req.user.id —
+ *               this is ANOTHER user's id, not the admin's own id)
+ *            2. Pass req.query for pagination (page, limit)
+ *            3. Delegate all logic to admin_service.get_audit_records
+ *            4. Return paginated response
+ *
+ * @param   {object} req - req.params.user_id, req.query
+ * @param   {object} res
+ * @param   {function} next
+ * ─────────────────────────────────────────────────────────
+ */
+async function audit_records(req, res, next) {
+    try {
+        const result = await admin_service.get_audit_records(
+            req.params.user_id,  // NOTE: this is the TARGET user's id, not req.user.id
+            req.query
+        );
+        return send_paginated(res, result.data, result.pagination);
+    } catch (err) {
+        next(err);
+    }
+}
+
+/*
+ * FUNCTION : dashboard_stats
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Admin panel overview tab needs operational health metrics for
+ *            the platform — user counts, activity today, AI usage, cache
+ *            hit ratio. These are NOT financial analytics.
+ *
+ * HOW      : 1. No params needed — always returns "today's" stats
+ *            2. Delegate to admin_service.get_dashboard_stats
+ *            3. Return success response
+ *
+ * @param   {object} req
+ * @param   {object} res
+ * @param   {function} next
+ * ─────────────────────────────────────────────────────────
+ */
+async function dashboard_stats(req, res, next) {
+    try {
+        const result = await admin_service.get_dashboard_stats();
+        return send_success(res, result);
+    } catch (err) {
+        next(err);
+    }
+}
+module.exports = { list_users, get_user, toggle_user, promote_user, add_note, audit_records, dashboard_stats, };

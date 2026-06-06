@@ -122,15 +122,19 @@ async function validate_category(category_id) {
  * ─────────────────────────────────────────────────────────
  */
 async function create_record(user_id, data) {
-    const { id, type, amount, category_id, date, operator, notes } = data;
+    const { type, amount, category_id, date, operator, notes } = data;
+    // if no id is provided (e.g. by Postman), generate a shorter unique one
+    let record_id = data.id;
+    if (!record_id || String(record_id).trim() === '') {
+        record_id = await generate_record_id(user_id);
+    }
 
     // mandatory field presence check
-    if (!id || String(id).trim() === '') throw new Error('Record ID is required');
     if (!type) throw new Error('Type is required');
     if (amount === undefined || amount === null || amount === '') throw new Error('Amount is required');
     if (!category_id) throw new Error('Category is required');
     if (!date) throw new Error('Date is required');
-    if (!operator || String(operator).trim() === '') throw new Error('Operator is required');
+    // operator is optional — defaults to empty string if not provided
 
     // type must be exactly one of the allowed values
     if (!VALID_TYPES.includes(type)) {
@@ -147,7 +151,7 @@ async function create_record(user_id, data) {
     }
 
     // CRITICAL: check ALL records, including soft-deleted, to protect audit trail
-    const existing = await record_model.find_by_id_any(String(id).trim());
+    const existing = await record_model.find_by_id_any(record_id);
     if (existing) {
         throw new Error('Record ID already exists');
     }
@@ -157,7 +161,7 @@ async function create_record(user_id, data) {
 
     return serialize_record(
         await record_model.create({
-            id: String(id).trim(),
+            id: record_id,
             type,
             amount,
             category_id,
@@ -195,6 +199,8 @@ async function get_records(user_id, query_params) {
         ...(query_params.record_id && { record_id: query_params.record_id }),
         ...(query_params.type && { type: query_params.type }),
         ...(query_params.category_id && { category_id: query_params.category_id }),
+        ...(query_params.date_from && { date_from: query_params.date_from }),
+        ...(query_params.date_to && { date_to: query_params.date_to }),
     };
 
     const [rows, total] = await record_model.find_many(user_id, filters, skip, take);
@@ -449,6 +455,40 @@ async function hard_delete_record(record_id) {
         throw err;
     }
 }
+/*
+ * FUNCTION : generate_record_id
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Frontend cannot guarantee uniqueness across tabs.
+ *            Backend checks the DB — guaranteed unique suggestion.
+ *            Format: REC-{YYYYMMDD}-{0001} — readable, date-stamped,
+ *            overridable by the user.
+ *
+ * HOW      : 1. Build YYYYMMDD string from today's date
+ *            2. Count today's records (incl. soft-deleted) for sequence
+ *            3. Collision check via find_by_id_any; try +1 if hit
+ *            4. Return the suggested ID string
+ *
+ * @param   {string}  user_id
+ * @returns {string}  e.g. "REC-20260602-0003"
+ * ─────────────────────────────────────────────────────────
+ */
+async function generate_record_id(user_id) {
+    const now = new Date();
+    const date_str = now.toISOString().slice(0, 10).replace(/-/g, ''); // "20260602"
+
+    const today_count = await record_model.count_user_records_today(user_id);
+    const sequence = String(today_count + 1).padStart(4, '0');
+    let suggested = `REC-${date_str}-${sequence}`;
+
+    // Collision check — rare but two simultaneous requests could race here
+    const collision = await record_model.find_by_id_any(suggested);
+    if (collision) {
+        const next_sequence = String(today_count + 2).padStart(4, '0');
+        suggested = `REC-${date_str}-${next_sequence}`;
+    }
+
+    return suggested;
+}
 
 module.exports = {
     create_record,
@@ -462,4 +502,5 @@ module.exports = {
     get_deleted_records,
     restore_record,
     hard_delete_record,
+    generate_record_id,
 };

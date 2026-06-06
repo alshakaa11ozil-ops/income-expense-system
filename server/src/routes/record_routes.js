@@ -26,13 +26,15 @@ const admin_guard = [attach_user, require_role(['ADMIN'])];
 // ── Static routes FIRST (before any /:id routes) ──────────────────────────
 // WHY: if these were below /:id, Express would match "export" as an id param
 router.get('/records/export', attach_user, record_controller.export_csv);
+router.get('/records/by-date', attach_user, record_controller.by_date);
 router.get('/records/deleted', admin_guard, record_controller.list_deleted);
 router.delete('/records/bulk', attach_user, record_controller.bulk_delete);
 
 // ── Standard CRUD ──────────────────────────────────────────────────────────
 router.post('/records', attach_user, record_controller.create);
 router.get('/records', attach_user, record_controller.list);
-
+// CRITICAL: must be BEFORE /:id — otherwise Express matches "generate-id" as a record ID param
+router.get('/records/generate-id', attach_user, record_controller.generate_id);
 // ── Dynamic :id routes LAST ────────────────────────────────────────────────
 router.get('/records/:id', attach_user, record_controller.get_one);
 router.put('/records/:id', attach_user, record_controller.update);

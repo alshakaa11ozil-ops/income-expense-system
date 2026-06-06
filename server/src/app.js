@@ -21,6 +21,8 @@ const mongoSanitize = require("express-mongo-sanitize");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const morgan = require("morgan");
+const { sanitize } = require("./middleware/sanitize");
+const { error_handler } = require("./middleware/error_handler");
 
 const app = express();
 
@@ -90,7 +92,7 @@ app.use(express.json({ limit: "10kb" }));
  * WHY: Parse URL-encoded bodies (HTML form submissions).
  */
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
+app.use(sanitize);
 /**
  * WHY: Parse Cookie header and populate req.cookies — required for reading
  *      the httpOnly refresh token cookie sent by the auth service.
@@ -129,6 +131,8 @@ const admin_routes = require("./routes/admin_routes");
 const budget_goal_routes = require("./routes/budget_goal_routes");
 const analytics_routes = require('./routes/analytics_routes');
 
+// ── Chat 5 routes ──────────────────────────────────────────
+const ai_routes = require('./routes/ai_routes');
 
 app.use("/api/auth", auth_routes);
 
@@ -140,6 +144,7 @@ app.use("/api", category_routes);
 app.use("/api", admin_routes);
 app.use("/api", budget_goal_routes);
 app.use('/api', analytics_routes);
+app.use('/api', ai_routes);
 
 
 // ---------------------------------------------------------------------------
@@ -153,39 +158,32 @@ app.use((_req, res) => {
 
 // ---------------------------------------------------------------------------
 // GLOBAL ERROR HANDLER
-// WHY: Centralises all unhandled errors — prevents stack traces leaking to
-//      clients and ensures every error returns a consistent JSON shape.
-// HOW: Express recognises a 4-argument middleware as an error handler.
-//
-// @param {Error}    err  - The thrown error object
-// @param {Request}  req  - Express request (unused but required by signature)
-// @param {Response} res  - Express response used to send the error reply
-// @param {Function} next - Express next (unused but required by signature)
+// WHY: Delegates to error_handler.js which handles 429 (AI limits + reset_at),
+//      502 (Gemini upstream), 401/403/404/400, Prisma P2002/P2025,
+//      budget goal policy errors, AI_ prefix errors, and 500 fallback.
+//      MUST be registered after all routes — Express uses 4-arg signature
+//      to identify error middleware.
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal server error.";
-
-    if (process.env.NODE_ENV === "development") {
-        console.error("[ERROR]", err);
-    }
-
-    res.status(status).json({
-        success: false,
-        message,
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-    });
-});
+app.use(error_handler);
 
 // ── Scheduled cleanup ────────────────────────────────────────
-// Every 6 hours — keeps refresh_token table from growing unbounded.
-// ai_cache cleanup added in Chat 5.
+// Every 6 hours — keeps refresh_token and ai_cache tables from
+// growing unbounded. ai_cache cleanup added in Chat 5.
 const refresh_token_model = require("./models/refresh_token_model");
+const ai_cache_model = require("./models/ai_cache_model");
 
 setInterval(async () => {
     try {
-        await refresh_token_model.delete_expired();
+        const [expired_tokens, expired_cache] = await Promise.all([
+            refresh_token_model.delete_expired(),
+            ai_cache_model.delete_expired(),
+        ]);
+        if (process.env.NODE_ENV === "development") {
+            console.log(
+                `[Cleanup] Deleted ${expired_tokens} refresh token(s), ` +
+                `${expired_cache} AI cache entr${expired_cache === 1 ? "y" : "ies"}`
+            );
+        }
     } catch (err) {
         console.error("[Cleanup] Failed:", err.message);
     }

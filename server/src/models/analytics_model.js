@@ -256,6 +256,41 @@ async function get_system_totals() {
 
     return { user_count, by_type };
 }
+/*
+ * FUNCTION : get_totals_for_range
+ * ─────────────────────────────────────────────────────────
+ * WHY      : The records page filtered-period summary bar needs
+ *            income/expense totals for an arbitrary date range
+ *            like "May 1 – June 2", not just a full calendar month.
+ *            Same shape as get_totals_by_type so the service
+ *            aggregation logic works identically for both.
+ *
+ * HOW      : prisma.record.groupBy on type
+ *            where: user_id, deleted_at: null,
+ *                   date: { gte: date_from, lte: date_to }
+ *            _sum: amount, _count: id
+ *
+ * @param   {string} user_id
+ * @param   {Date}   date_from  - Range start (inclusive)
+ * @param   {Date}   date_to    - Range end (inclusive, caller sets to end-of-day)
+ * @returns {Array}             - same shape as get_totals_by_type
+ * ─────────────────────────────────────────────────────────
+ */
+async function get_totals_for_range(user_id, date_from, date_to) {
+    return prisma.record.groupBy({
+        by: ['type'],
+        where: {
+            user_id,
+            deleted_at: null,
+            date: {
+                gte: date_from,
+                lte: date_to,
+            },
+        },
+        _sum: { amount: true },
+        _count: { id: true },
+    });
+}
 
 module.exports = {
     get_totals_by_type,
@@ -264,4 +299,5 @@ module.exports = {
     get_records_for_daily_balance,
     get_balance_before_date,
     get_system_totals,
+    get_totals_for_range,
 };

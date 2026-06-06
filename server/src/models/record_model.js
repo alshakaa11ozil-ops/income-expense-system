@@ -95,17 +95,23 @@ async function find_many(user_id, filters, skip, take) {
     const where = {
         user_id,
         deleted_at: null,
-        // partial match on record id — useful for searching "INV-" prefix patterns
         ...(filters.record_id && { id: { contains: filters.record_id, mode: 'insensitive' } }),
         ...(filters.type && { type: filters.type }),
         ...(filters.category_id && { category_id: filters.category_id }),
+        // date range filter — applied when searching by date on the records page
+        ...((filters.date_from || filters.date_to) && {
+            date: {
+                ...(filters.date_from && { gte: new Date(filters.date_from) }),
+                ...(filters.date_to && { lte: new Date(new Date(filters.date_to).setHours(23, 59, 59, 999)) }),
+            },
+        }),
     };
 
     const [rows, total] = await prisma.$transaction([
         prisma.record.findMany({
             where,
             include: CATEGORY_JOIN,
-            orderBy: { date: 'desc' },
+            orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
             skip,
             take,
         }),
@@ -143,7 +149,7 @@ async function find_by_date_range(user_id, date_from, date_to, skip, take) {
         prisma.record.findMany({
             where,
             include: CATEGORY_JOIN,
-            orderBy: { date: 'desc' },
+            orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
             skip,
             take,
         }),
@@ -223,8 +229,18 @@ async function find_deleted(user_id) {
  * ─────────────────────────────────────────────────────────
  */
 async function create(data) {
+    // WHY destructure: category_id and user_id must be passed as
+    // Prisma relation connects, not as raw scalar fields in data.
+    // Spreading the full `data` object directly causes Prisma to
+    // error: "Argument `category` is missing."
+    const { category_id, user_id, ...scalar_fields } = data;
+
     return prisma.record.create({
-        data,
+        data: {
+            ...scalar_fields,          // id, type, amount, date, operator, notes
+            category: { connect: { id: category_id } }, // relation connect
+            user: { connect: { id: user_id } },     // relation connect
+        },
         include: CATEGORY_JOIN,
     });
 }
@@ -363,7 +379,35 @@ async function find_all_for_export(user_id, filters) {
     return prisma.record.findMany({
         where,
         include: CATEGORY_JOIN,
-        orderBy: { date: 'desc' },
+        orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+    });
+}
+/*
+ * FUNCTION : count_user_records_today
+ * ─────────────────────────────────────────────────────────
+ * WHY      : ID generation uses REC-{YYYYMMDD}-{nnnn} format.
+ *            Counting today's records gives the next sequence slot.
+ *            Includes soft-deleted rows — a deleted record still
+ *            occupied its sequence number; reusing it causes audit
+ *            log ambiguity.
+ *
+ * HOW      : record.count WHERE user_id + created_at >= today midnight
+ *            NO deleted_at filter — intentional, see WHY above.
+ *
+ * @param   {string} user_id
+ * @returns {number}
+ * ─────────────────────────────────────────────────────────
+ */
+async function count_user_records_today(user_id) {
+    const start_of_today = new Date();
+    start_of_today.setUTCHours(0, 0, 0, 0);
+
+    return prisma.record.count({
+        where: {
+            user_id,
+            // No deleted_at filter — deleted records still hold their sequence number
+            created_at: { gte: start_of_today },
+        },
     });
 }
 
@@ -381,4 +425,5 @@ module.exports = {
     restore,
     hard_delete,
     find_all_for_export,
+    count_user_records_today,
 };

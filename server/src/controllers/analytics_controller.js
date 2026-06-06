@@ -44,15 +44,27 @@ const current_year = now.getFullYear();
  */
 async function summary(req, res, next) {
     try {
-        const month = Number(req.query.month) || current_month;
-        const year = Number(req.query.year) || current_year;
-        const result = await analytics_service.get_summary(req.user.user_id, month, year);
+        const { month, year, date_from, date_to } = req.query;
+
+        let params;
+        if (date_from && date_to) {
+            // Mode B — records page filtered-period summary
+            params = { date_from, date_to };
+        } else {
+            // Mode A — dashboard summary cards (default to current month)
+            const now = new Date();
+            params = {
+                month: Number(month) || (now.getMonth() + 1),
+                year: Number(year) || now.getFullYear(),
+            };
+        }
+
+        const result = await analytics_service.get_summary(req.user.id, params);
         send_success(res, result);
     } catch (err) {
         next(err);
     }
 }
-
 /*
  * FUNCTION : trends
  * ─────────────────────────────────────────────────────────
@@ -71,7 +83,7 @@ async function summary(req, res, next) {
 async function trends(req, res, next) {
     try {
         const months_back = Number(req.query.months_back) || 6;
-        const result = await analytics_service.get_monthly_trends(req.user.user_id, months_back);
+        const result = await analytics_service.get_monthly_trends(req.user.id, months_back);
         send_success(res, result);
     } catch (err) {
         next(err);
@@ -98,7 +110,7 @@ async function categories(req, res, next) {
     try {
         const month = Number(req.query.month) || current_month;
         const year = Number(req.query.year) || current_year;
-        const result = await analytics_service.get_category_breakdown(req.user.user_id, month, year);
+        const result = await analytics_service.get_category_breakdown(req.user.id, month, year);
         send_success(res, result);
     } catch (err) {
         next(err);
@@ -126,7 +138,7 @@ async function daily_balance(req, res, next) {
         const date_from = new Date(req.query.date_from);
         const date_to = new Date(req.query.date_to);
         const result = await analytics_service.get_daily_balance(
-            req.user.user_id, date_from, date_to
+            req.user.id, date_from, date_to
         );
         send_success(res, result);
     } catch (err) {

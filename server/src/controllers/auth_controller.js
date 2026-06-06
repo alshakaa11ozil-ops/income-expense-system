@@ -148,7 +148,7 @@ async function logout(req, res, next) {
  */
 async function get_me(req, res, next) {
     try {
-        const user = await auth_service.get_current_user(req.user.user_id);
+        const user = await auth_service.get_current_user(req.user.id);
         return send_success(res, user);
     } catch (err) {
         next(err);

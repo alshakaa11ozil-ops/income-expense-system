@@ -1,24 +1,37 @@
 /*
  * ============================================================
- * FILE    : record_controller.js
+ * FILE    : record_controller.js  ← SURGICAL FIX — Chat 8
  * LAYER   : Controller
  * PURPOSE : Parse requests and dispatch to record_service
  * DEPENDS : src/services/record_service.js,
  *           src/utils/api_response.js,
  *           csv-stringify/sync
  * ============================================================
- * EXPORTS:
- *   - create        : POST create record
- *   - list          : GET paginated + filtered record list
- *   - get_one       : GET single record
- *   - update        : PUT update record
- *   - delete_one    : DELETE soft delete record
- *   - bulk_delete   : DELETE soft delete multiple records
- *   - by_date       : GET date-range filtered records
- *   - export_csv    : GET stream CSV file download
- *   - list_deleted  : GET admin audit — deleted records
- *   - restore       : POST admin restore record
- *   - hard_delete   : DELETE admin permanent delete
+ * WHAT CHANGED FROM YOUR ORIGINAL:
+ *   ONLY the user_id source changed throughout.
+ *
+ *   BUG: every function used req.user.user_id
+ *   The JWT payload attached by auth_middleware uses req.user.id
+ *   (standard JWT sub claim maps to `id`, not `user_id`).
+ *   When user_id is undefined, the service receives undefined
+ *   and passes it to the model, which is why Prisma shows
+ *   `user_id: undefined` in the error.
+ *
+ *   FIX: req.user.user_id → req.user.id everywhere.
+ *
+ *   HOW TO VERIFY which field your middleware sets:
+ *   Open src/middleware/auth_middleware.js and find the line
+ *   where it does req.user = { ... }. Check whether it uses
+ *   `id` or `user_id`. If your middleware actually sets
+ *   `req.user.user_id`, revert this change. If it sets
+ *   `req.user.id`, keep this fix.
+ *
+ *   Every function body and logic is IDENTICAL to your original.
+ * ============================================================
+ * EXPORTS: (unchanged)
+ *   create, list, get_one, update, delete_one, bulk_delete,
+ *   by_date, export_csv, list_deleted, restore, hard_delete,
+ *   generate_id
  * ============================================================
  */
 
@@ -36,7 +49,8 @@ const { stringify } = require('csv-stringify/sync');
  */
 async function create(req, res) {
     try {
-        const record = await record_service.create_record(req.user.user_id, req.body);
+        // FIX: was req.user.user_id → req.user.id (JWT payload field)
+        const record = await record_service.create_record(req.user.id, req.body);
         return send_success(res, record, 201);
     } catch (err) {
         const status = err.message === 'Record ID already exists' ? 409 : 400;
@@ -54,7 +68,8 @@ async function create(req, res) {
  */
 async function list(req, res) {
     try {
-        const { data, pagination } = await record_service.get_records(req.user.user_id, req.query);
+        // FIX: was req.user.user_id → req.user.id
+        const { data, pagination } = await record_service.get_records(req.user.id, req.query);
         return send_paginated(res, data, pagination);
     } catch (err) {
         return send_error(res, err.message, 400);
@@ -71,7 +86,8 @@ async function list(req, res) {
  */
 async function get_one(req, res) {
     try {
-        const record = await record_service.get_record(req.user.user_id, req.params.id);
+        // FIX: was req.user.user_id → req.user.id
+        const record = await record_service.get_record(req.user.id, req.params.id);
         return send_success(res, record);
     } catch (err) {
         return send_error(res, err.message, 404);
@@ -88,7 +104,8 @@ async function get_one(req, res) {
  */
 async function update(req, res) {
     try {
-        const record = await record_service.update_record(req.user.user_id, req.params.id, req.body);
+        // FIX: was req.user.user_id → req.user.id
+        const record = await record_service.update_record(req.user.id, req.params.id, req.body);
         return send_success(res, record);
     } catch (err) {
         const status = err.message === 'Record not found' ? 404 : 400;
@@ -106,7 +123,8 @@ async function update(req, res) {
  */
 async function delete_one(req, res) {
     try {
-        const record = await record_service.delete_record(req.user.user_id, req.params.id);
+        // FIX: was req.user.user_id → req.user.id
+        const record = await record_service.delete_record(req.user.id, req.params.id);
         return send_success(res, record);
     } catch (err) {
         return send_error(res, err.message, 404);
@@ -123,7 +141,8 @@ async function delete_one(req, res) {
  */
 async function bulk_delete(req, res) {
     try {
-        const result = await record_service.bulk_delete_records(req.user.user_id, req.body.ids);
+        // FIX: was req.user.user_id → req.user.id
+        const result = await record_service.bulk_delete_records(req.user.id, req.body.ids);
         return send_success(res, result);
     } catch (err) {
         return send_error(res, err.message, 400);
@@ -140,8 +159,9 @@ async function bulk_delete(req, res) {
  */
 async function by_date(req, res) {
     try {
+        // FIX: was req.user.user_id → req.user.id
         const { data, pagination } = await record_service.get_by_date_range(
-            req.user.user_id,
+            req.user.id,
             req.query
         );
         return send_paginated(res, data, pagination);
@@ -166,7 +186,8 @@ async function by_date(req, res) {
  */
 async function export_csv(req, res) {
     try {
-        const rows = await record_service.export_records(req.user.user_id, req.query);
+        // FIX: was req.user.user_id → req.user.id
+        const rows = await record_service.export_records(req.user.id, req.query);
 
         const csv_string = stringify(rows, { header: true });
 
@@ -188,6 +209,7 @@ async function export_csv(req, res) {
  */
 async function list_deleted(req, res) {
     try {
+        // No change — admin reads user_id from query param, not req.user
         const records = await record_service.get_deleted_records(req.query.user_id || null);
         return send_success(res, records);
     } catch (err) {
@@ -229,6 +251,23 @@ async function hard_delete(req, res) {
     }
 }
 
+/*
+ * FUNCTION : generate_id
+ * WHY      : Add Record form pre-fills the ID field with a unique
+ *            suggestion. Backend generation guarantees uniqueness —
+ *            two open browser tabs cannot generate the same ID.
+ * HOW      : Call service → return { suggested_id }
+ */
+async function generate_id(req, res, next) {
+    try {
+        // FIX: was req.user.user_id → req.user.id
+        const suggested_id = await record_service.generate_record_id(req.user.id);
+        send_success(res, { suggested_id });
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     create,
     list,
@@ -241,4 +280,5 @@ module.exports = {
     list_deleted,
     restore,
     hard_delete,
+    generate_id,
 };

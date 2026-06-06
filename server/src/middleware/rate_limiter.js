@@ -42,8 +42,9 @@ const login_limiter = rate_limit({
         error: 'Too many login attempts. Please try again in 15 minutes.',
         code: 'RATE_LIMIT_EXCEEDED',
     },
-    // Key by IP only — no user context available at login time
-    keyGenerator: (req) => req.ip,
+    // WHY no keyGenerator: express-rate-limit v8 keys by IP by default
+    // with correct IPv6 handling. Custom keyGenerator: req => req.ip
+    // triggers ERR_ERL_KEY_GEN_IPV6 validation error in v8+.
 });
 
 /*
@@ -71,7 +72,7 @@ const register_limiter = rate_limit({
         error: 'Too many accounts created from this IP. Please try again in an hour.',
         code: 'RATE_LIMIT_EXCEEDED',
     },
-    keyGenerator: (req) => req.ip,
+    // WHY no keyGenerator: same reason as login_limiter above
 });
 
 module.exports = { login_limiter, register_limiter };

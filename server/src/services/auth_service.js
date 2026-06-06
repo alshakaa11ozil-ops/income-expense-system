@@ -18,7 +18,7 @@
 // ARCHITECTURE GUARD: This file must never import PrismaClient.
 // All DB access goes through functions in src/models/*.js only.
 
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const user_model = require('../models/user_model');
 const refresh_token_model = require('../models/refresh_token_model');

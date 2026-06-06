@@ -23,7 +23,8 @@ model User {
   ai_usage       AiUsage[]
   records        Record[]
   refresh_tokens RefreshToken[]
-  budget_goals  BudgetGoal[]
+  budget_goals   BudgetGoal[]
+  categories     Category[]     @relation("UserCategories")
 
   @@index([email])
   @@index([role])
@@ -50,15 +51,18 @@ model Category {
   icon       String   @default("📁")       // emoji string — no file upload needed
   color      String   @default("#6B7280")  // hex color for UI badge
   is_active  Boolean  @default(true)
+  user_id    String?                       // null for system categories
   created_by String                         // user_id of admin who created it
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  records Record[]
-  budget_goals  BudgetGoal[]
+  user         User?      @relation("UserCategories", fields: [user_id], references: [id])
+  records      Record[]
+  budget_goals BudgetGoal[]
 
   @@index([name])
   @@index([is_active])
+  @@index([user_id])
 }
 
 model Record {

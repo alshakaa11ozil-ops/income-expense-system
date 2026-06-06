@@ -24,7 +24,7 @@ const { send_success, send_error } = require('../utils/api_response');
 
 async function get_for_user(req, res) {
     try {
-        const data = await category_service.get_categories_for_user(req.user.user_id);
+        const data = await category_service.get_categories_for_user(req.user.id);
         return send_success(res, data);
     } catch (err) {
         return send_error(res, err.message, 500);
@@ -42,7 +42,7 @@ async function get_system_all(req, res) {
 
 async function get_user_own(req, res) {
     try {
-        const data = await category_service.get_user_categories(req.user.user_id);
+        const data = await category_service.get_user_categories(req.user.id);
         return send_success(res, data);
     } catch (err) {
         return send_error(res, err.message, 500);
@@ -51,7 +51,7 @@ async function get_user_own(req, res) {
 
 async function create_system(req, res) {
     try {
-        const cat = await category_service.create_system_category(req.user.user_id, req.body);
+        const cat = await category_service.create_system_category(req.user.id, req.body);
         return send_success(res, cat, 201);
     } catch (err) {
         const status = err.message.includes('already exists') ? 409 : 400;
@@ -61,7 +61,7 @@ async function create_system(req, res) {
 
 async function create_user(req, res) {
     try {
-        const cat = await category_service.create_user_category(req.user.user_id, req.body);
+        const cat = await category_service.create_user_category(req.user.id, req.body);
         return send_success(res, cat, 201);
     } catch (err) {
         const status = err.message.includes('already exists') ? 409 : 400;
@@ -81,7 +81,7 @@ async function update_system(req, res) {
 
 async function update_user(req, res) {
     try {
-        const cat = await category_service.update_user_category(req.params.id, req.user.user_id, req.body);
+        const cat = await category_service.update_user_category(req.params.id, req.user.id, req.body);
         return send_success(res, cat);
     } catch (err) {
         const status = err.message === 'Category not found' ? 404 : 400;
@@ -101,7 +101,7 @@ async function deactivate_system(req, res) {
 
 async function delete_user(req, res) {
     try {
-        const cat = await category_service.delete_user_category(req.params.id, req.user.user_id);
+        const cat = await category_service.delete_user_category(req.params.id, req.user.id);
         return send_success(res, cat);
     } catch (err) {
         const status = err.message === 'Category not found' ? 404 : 409;
