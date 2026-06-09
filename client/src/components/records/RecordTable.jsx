@@ -79,19 +79,19 @@ export default function RecordTable({
     // shown while the API call is in flight — prevents layout shift
     if (is_loading) {
         return (
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="overflow-x-auto rounded-xl border border-slate-300">
                 <table className="min-w-full divide-y divide-slate-200">
                     <TableHead
                         header_checkbox_ref={header_checkbox_ref}
                         on_select_all={on_select_all}
                     />
-                    <tbody className="bg-white divide-y divide-slate-100">
+                    <tbody className="bg-slate-50 divide-y divide-slate-100">
                         {Array.from({ length: 5 }).map((_, i) => (
                             <tr key={i}>
                                 {/* 9 columns: checkbox + 7 data + 1 actions */}
                                 {Array.from({ length: 9 }).map((_, j) => (
                                     <td key={j} className="px-4 py-3">
-                                        <div className="h-4 bg-slate-100 rounded animate-pulse" style={{ width: j === 0 ? '1rem' : '80%' }} />
+                                        <div className="h-4 bg-slate-200 rounded animate-pulse" style={{ width: j === 0 ? '1rem' : '80%' }} />
                                     </td>
                                 ))}
                             </tr>
@@ -105,7 +105,7 @@ export default function RecordTable({
     // ── Empty state ──────────────────────────────────────────────
     if (record_list.length === 0) {
         return (
-            <div className="rounded-xl border border-slate-200 bg-white">
+            <div className="rounded-xl border border-slate-300 bg-slate-50">
                 <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                     <span className="text-5xl mb-4" role="img" aria-label="receipt">🧾</span>
                     <h3 className="text-base font-semibold text-slate-700 mb-1">No records found</h3>
@@ -138,13 +138,13 @@ export default function RecordTable({
 
     // ── Full table ───────────────────────────────────────────────
     return (
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-xl border border-slate-300">
             <table className="min-w-full divide-y divide-slate-200">
                 <TableHead
                     header_checkbox_ref={header_checkbox_ref}
                     on_select_all={on_select_all}
                 />
-                <tbody className="bg-white divide-y divide-slate-100">
+                <tbody className="bg-slate-50 divide-y divide-slate-100">
                     {record_list.map(record => (
                         <RecordRow
                             key={record.id}
@@ -173,14 +173,14 @@ export default function RecordTable({
  */
 function TableHead({ header_checkbox_ref, on_select_all }) {
     return (
-        <thead className="bg-slate-50">
+        <thead className="bg-slate-100">
             <tr>
                 <th className="w-10 px-4 py-3">
                     <input
                         ref={header_checkbox_ref}
                         type="checkbox"
                         onChange={on_select_all}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-slate-400 text-blue-600 focus:ring-blue-500"
                         aria-label="Select all records"
                     />
                 </th>
@@ -223,21 +223,21 @@ function RecordRow({ record, is_selected, on_select, on_edit, on_delete }) {
         : (record.notes ?? '—')
 
     return (
-        <tr className={`transition-colors ${is_selected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+        <tr className={`transition-colors ${is_selected ? 'bg-blue-50' : 'hover:bg-slate-200'}`}>
             {/* Checkbox */}
             <td className="px-4 py-3">
                 <input
                     type="checkbox"
                     checked={is_selected}
                     onChange={on_select}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-400 text-blue-600 focus:ring-blue-500"
                     aria-label={`Select record ${record.id}`}
                 />
             </td>
 
             {/* Record ID */}
             <td className="px-4 py-3">
-                <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="font-mono text-xs text-slate-600 bg-slate-200 px-2 py-0.5 rounded">
                     {record.id}
                 </span>
             </td>
@@ -299,7 +299,7 @@ function RecordRow({ record, is_selected, on_select, on_edit, on_delete }) {
                     {/* Edit */}
                     <button
                         onClick={on_edit}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                         aria-label={`Edit record ${record.id}`}
                         title="Edit"
                     >
@@ -311,7 +311,7 @@ function RecordRow({ record, is_selected, on_select, on_edit, on_delete }) {
                     {/* Delete */}
                     <button
                         onClick={on_delete}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                         aria-label={`Delete record ${record.id}`}
                         title="Delete"
                     >

@@ -5,26 +5,27 @@
  * PURPOSE : Single import point for all API functions.
  *           Components import from 'services/api' and this file
  *           re-exports from the domain-specific sub-files.
- *           This is a drop-in replacement for the old monolithic
- *           api.js — no component imports need to change.
  *
  *           Old:  import { create_record } from '../services/api'
  *           New:  import { create_record } from '../services/api'
  *                 ← identical import path, nothing breaks
  *
- * DEPENDS : api/client, api/auth, api/records,
- *           api/categories, api/analytics, api/ai
+ * DEPENDS : api/client, api/auth, api/records, api/categories,
+ *           api/budget_goals, api/analytics, api/ai
  * ============================================================
  * FILE LAYOUT:
  *   client/src/services/
  *     api/
- *       index.js       ← this file (barrel)
- *       client.js      ← Axios instance + interceptors + token
- *       auth.js        ← login, register, logout, refresh, me
- *       records.js     ← CRUD, bulk delete, export, generate-id
- *       categories.js  ← get_categories
- *       analytics.js   ← summary, trends, categories, daily
- *       ai.js          ← plan, advise, analyze
+ *       index.js        ← this file (barrel)
+ *       client.js       ← Axios instance + interceptors + token
+ *       auth.js         ← login, register, logout, refresh, me
+ *       records.js      ← CRUD, bulk delete, export, generate-id
+ *       categories.js   ← get/create/update/delete categories
+ *                          + single-goal upsert (CategoriesPage)
+ *       budget_goals.js ← bulk save, dashboard fetch, goal delete
+ *                          (AI planner tab only)
+ *       analytics.js    ← summary, trends, categories, daily
+ *       ai.js           ← plan, advise, analyze, usage
  * ============================================================
  */
 
@@ -45,8 +46,24 @@ export {
     get_current_user,
 } from './auth'
 
-// ── Categories ───────────────────────────────────────────────
-export { get_categories } from './categories'
+// ── Categories & single-category budget goals ─────────────────
+export {
+    get_categories,
+    get_my_categories,
+    create_my_category,
+    update_my_category,
+    delete_my_category,
+    get_budget_goals,
+    save_budget_goal,
+    delete_budget_goal,
+} from './categories'
+
+// ── AI planner bulk budget goals ──────────────────────────────
+export {
+    get_budget_goals_for_planner,
+    save_budget_goals,
+    delete_budget_goal_by_id,
+} from './budget_goals'
 
 // ── Records ──────────────────────────────────────────────────
 export {
@@ -66,6 +83,7 @@ export {
     get_analytics_summary_for_range,
     get_analytics_trends,
     get_analytics_categories,
+    get_analytics_category_activity,
     get_analytics_daily,
 } from './analytics'
 
@@ -74,4 +92,23 @@ export {
     ai_plan_expenses,
     ai_advise_purchase,
     ai_analyze_finances,
+    get_ai_usage,
 } from './ai'
+
+// ── Admin (ADMIN role only) ───────────────────────────────────
+export {
+    admin_get_users,
+    admin_get_user,
+    admin_toggle_user,
+    admin_promote_user,
+    admin_add_note,
+    admin_get_audit_records,
+    admin_restore_record,
+    admin_hard_delete_record,
+    admin_get_dashboard,
+    admin_get_ai_usage,
+    admin_get_categories,
+    admin_create_category,
+    admin_update_category,
+    admin_deactivate_category,
+} from './admin'

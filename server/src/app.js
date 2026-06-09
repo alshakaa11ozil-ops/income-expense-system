@@ -53,7 +53,18 @@ app.use(helmet());
  */
 app.use(
     cors({
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        origin: (origin, callback) => {
+            const allowed = [
+                process.env.CLIENT_URL || 'http://localhost:3000',
+                'http://localhost:5173', // Vite dev server
+            ];
+            // allow requests with no origin (curl, Postman, etc.)
+            if (!origin || allowed.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error(`Not allowed by CORS: ${origin}`));
+            }
+        },
         credentials: true,
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],

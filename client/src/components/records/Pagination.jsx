@@ -110,7 +110,7 @@ export default function Pagination({
                 <button
                     onClick={() => on_page_change(current_page - 1)}
                     disabled={current_page === 1}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-400 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     aria-label="Previous page"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -123,7 +123,7 @@ export default function Pagination({
                 {page_list.map((item, i) =>
                     item === '...'
                         ? (
-                            <span key={`ellipsis-${i}`} className="px-2 text-slate-400 select-none">
+                            <span key={`ellipsis-${i}`} className="px-2 text-slate-500 select-none">
                                 …
                             </span>
                         )
@@ -133,7 +133,7 @@ export default function Pagination({
                                 onClick={() => on_page_change(item)}
                                 className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${item === current_page
                                         ? 'bg-blue-600 text-white shadow-sm'           // active page
-                                        : 'text-slate-600 hover:bg-slate-100'          // inactive
+                                        : 'text-slate-600 hover:bg-slate-300'          // inactive
                                     }`}
                                 aria-label={`Go to page ${item}`}
                                 aria-current={item === current_page ? 'page' : undefined}
@@ -147,7 +147,7 @@ export default function Pagination({
                 <button
                     onClick={() => on_page_change(current_page + 1)}
                     disabled={current_page === total_pages}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-400 text-sm font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     aria-label="Next page"
                 >
                     Next

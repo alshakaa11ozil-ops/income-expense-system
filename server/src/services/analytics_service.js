@@ -146,7 +146,7 @@ async function get_summary(user_id, params) {
         const now = new Date();
         const month = Number(params.month) || (now.getMonth() + 1);
         const year = Number(params.year) || now.getFullYear();
-        rows = await analytics_model.get_totals_by_type(user_id, month, year);
+        rows = await analytics_model.get_totals_by_type(user_id, month, year, params.category_id);
     }
 
     // Aggregate — identical for both modes
@@ -192,8 +192,8 @@ async function get_summary(user_id, params) {
  * @throws  {Error}                 - Propagates model errors
  * ─────────────────────────────────────────────────────────
  */
-async function get_monthly_trends(user_id, months_back = 6) {
-    const raw_records = await analytics_model.get_records_for_trends(user_id, months_back);
+async function get_monthly_trends(user_id, months_back = 6, category_id = null) {
+    const raw_records = await analytics_model.get_records_for_trends(user_id, months_back, category_id);
 
     // ── Build all month labels for the period ────────────────────────────────
     // Generate labels from oldest to newest so the chart reads left-to-right.
@@ -310,6 +310,50 @@ async function get_category_breakdown(user_id, month, year) {
             // count: row._count?.id ?? 0, 
         };
     });
+}
+
+/*
+ * FUNCTION : get_category_activity_map
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Provides totals for BOTH income and expenses for all categories.
+ *            Required by the Categories page to display activity correctly
+ *            on both income and expense cards.
+ *
+ * HOW      : 1. Fetch raw totals grouped by category and type
+ *            2. Aggregate into a single object per category
+ * ─────────────────────────────────────────────────────────
+ */
+async function get_category_activity_map(user_id, month, year) {
+    const raw_totals = await analytics_model.get_all_category_totals(user_id, month, year);
+    
+    // Group by category_id
+    const map = new Map();
+    for (const row of raw_totals) {
+        if (!map.has(row.category_id)) {
+            map.set(row.category_id, {
+                category_id: row.category_id,
+                total_income: new Decimal(0),
+                total_expense: new Decimal(0)
+            });
+        }
+        
+        const bucket = map.get(row.category_id);
+        const amount = to_decimal(row._sum?.amount);
+        
+        if (row.type === 'income') {
+            bucket.total_income = bucket.total_income.plus(amount);
+        } else {
+            bucket.total_expense = bucket.total_expense.plus(amount);
+        }
+    }
+    
+    // Serialize
+    return Array.from(map.values()).map(b => ({
+        category_id: b.category_id,
+        total_income: b.total_income.toFixed(2),
+        total_expense: b.total_expense.toFixed(2),
+        total: (b.total_income.plus(b.total_expense)).toFixed(2) // Some logic might just need "any activity"
+    }));
 }
 
 /*
@@ -495,4 +539,5 @@ module.exports = {
     get_category_breakdown,
     get_daily_balance,
     get_system_summary,
+    get_category_activity_map,
 };

@@ -176,7 +176,7 @@ async function build_financial_context(user_id) {
     const record_count = summary.value?.record_count ?? 0;
     const data_quality = record_count === 0 ? 'none'
         : record_count < 10 ? 'limited'
-        : 'good';
+            : 'good';
 
     return {
         current_month: `${year}-${String(month).padStart(2, '0')}`,
@@ -222,10 +222,27 @@ async function call_gemini_safe(prompt, zod_schema) {
     const start_time = Date.now();
 
     let response;
-    try {
-        response = await gemini_model.generateContent(prompt);
-    } catch (err) {
-        const error = new Error('AI_UNAVAILABLE: Gemini API call failed');
+    let attempts = 0;
+    let last_err;
+
+    while (attempts < 3) {
+        try {
+            response = await gemini_model.generateContent(prompt);
+            break; // Success!
+        } catch (err) {
+            attempts++;
+            last_err = err;
+            console.error(`GEMINI API ERROR (Attempt ${attempts}/3):`, err.message);
+            // Wait 2s, then 4s before retrying
+            if (attempts < 3) {
+                await new Promise(res => setTimeout(res, attempts * 2000));
+            }
+        }
+    }
+
+    if (!response) {
+        console.error("GEMINI API FATAL:", last_err);
+        const error = new Error('AI_UNAVAILABLE: Gemini API call failed after retries');
         error.status = 502;
         throw error;
     }
@@ -243,7 +260,8 @@ async function call_gemini_safe(prompt, zod_schema) {
     let parsed;
     try {
         parsed = JSON.parse(clean_text);
-    } catch {
+    } catch (err) {
+        console.error("GEMINI PARSE ERROR:", err, "RAW TEXT:", clean_text);
         const error = new Error('AI_PARSE_ERROR: Gemini returned invalid JSON');
         error.status = 502;
         throw error;
@@ -251,6 +269,7 @@ async function call_gemini_safe(prompt, zod_schema) {
 
     const validated = zod_schema.safeParse(parsed);
     if (!validated.success) {
+        console.error("GEMINI SCHEMA ERROR:", validated.error);
         const error = new Error('AI_SCHEMA_ERROR: Gemini response did not match expected schema');
         error.status = 502;
         throw error;

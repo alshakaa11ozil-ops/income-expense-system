@@ -91,7 +91,7 @@ export default function ToastContainer({ toasts, dismiss_toast }) {
                         {/* manual close button */}
                         <button
                             onClick={() => dismiss_toast(toast.id)}
-                            className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors mt-0.5"
+                            className="flex-shrink-0 text-slate-500 hover:text-slate-600 transition-colors mt-0.5"
                             aria-label="Close notification"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

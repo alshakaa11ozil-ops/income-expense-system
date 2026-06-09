@@ -46,7 +46,7 @@ function ProtectedRoute({ children }) {
   // This prevents the login-page flash for already-authenticated users.
   if (is_loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex items-center justify-center min-h-screen bg-slate-100">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
           <p className="text-sm text-slate-500">Loading...</p>

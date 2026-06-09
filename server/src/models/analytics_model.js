@@ -40,7 +40,7 @@ const prisma = require('../config/database');
  * @throws  {Error}           - Prisma query failure
  * ─────────────────────────────────────────────────────────
  */
-async function get_totals_by_type(user_id, month, year) {
+async function get_totals_by_type(user_id, month, year, category_id = null) {
     // Build date range for the target month — gte/lt avoids timezone edge cases
     const date_start = new Date(year, month - 1, 1);   // first day of month
     const date_end = new Date(year, month, 1);        // first day of NEXT month
@@ -49,6 +49,7 @@ async function get_totals_by_type(user_id, month, year) {
         by: ['type'],
         where: {
             user_id,
+            ...(category_id && { category_id }),
             deleted_at: null,  // never include soft-deleted records in totals
             date: {
                 gte: date_start,
@@ -79,7 +80,7 @@ async function get_totals_by_type(user_id, month, year) {
  * @throws  {Error}               - Prisma query failure
  * ─────────────────────────────────────────────────────────
  */
-async function get_records_for_trends(user_id, months_back) {
+async function get_records_for_trends(user_id, months_back, category_id = null) {
     const now = new Date();
     // Roll back to the first day of the earliest month we need
     const start_date = new Date(now.getFullYear(), now.getMonth() - (months_back - 1), 1);
@@ -87,6 +88,7 @@ async function get_records_for_trends(user_id, months_back) {
     return prisma.record.findMany({
         where: {
             user_id,
+            ...(category_id && { category_id }),
             deleted_at: null,  // soft-deleted records must not appear in trend data
             date: {
                 gte: start_date,
@@ -98,6 +100,31 @@ async function get_records_for_trends(user_id, months_back) {
             amount: true,
         },
         orderBy: { date: 'asc' },
+    });
+}
+
+/*
+ * FUNCTION : get_all_category_totals
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Provides totals for BOTH income and expenses grouped by category.
+ *            Used by the Categories management page to display both activity types.
+ * ─────────────────────────────────────────────────────────
+ */
+async function get_all_category_totals(user_id, month, year) {
+    const date_start = new Date(year, month - 1, 1);
+    const date_end = new Date(year, month, 1);
+
+    return prisma.record.groupBy({
+        by: ['category_id', 'type'],
+        where: {
+            user_id,
+            deleted_at: null,
+            date: {
+                gte: date_start,
+                lt: date_end,
+            },
+        },
+        _sum: { amount: true },
     });
 }
 
@@ -293,6 +320,7 @@ async function get_totals_for_range(user_id, date_from, date_to) {
 }
 
 module.exports = {
+    get_all_category_totals,
     get_totals_by_type,
     get_records_for_trends,
     get_expense_totals_by_category,

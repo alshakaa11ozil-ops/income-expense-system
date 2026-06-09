@@ -28,8 +28,8 @@ const { send_success, send_error, send_paginated } = require('../utils/api_respo
  */
 async function list_users(req, res) {
     try {
-        const { users, pagination } = await admin_service.list_users(req.query);
-        return send_paginated(res, users, pagination);
+        const { data, pagination } = await admin_service.list_users(req.query);
+        return send_paginated(res, data, pagination);
     } catch (err) {
         return send_error(res, err.message, 500);
     }

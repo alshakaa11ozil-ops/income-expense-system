@@ -196,22 +196,23 @@ export function AuthProvider({ children }) {
      *          do anything in the app.
      *       c) Server-side token rotation already limits the blast
      *          radius of any single compromised token.
-     * ─────────────────────────────────────────────────────────────
      */
     async function logout_user_ctx() {
-        // Step 1 + 2: clear client state first for instant UX.
+        try {
+            // Await the server request FIRST. The Axios interceptor
+            // will attach the Bearer token, the server will revoke the
+            // session and clear the httpOnly refresh cookie.
+            await logout_user()
+        } catch (err) {
+            console.error('[auth] logout server call failed:', err?.message)
+        }
+
+        // Only clear client state AFTER the server request finishes.
+        // If we clear state first, the Axios interceptor sends no token,
+        // which throws a 401, triggering a token refresh that logs the user back in!
         setAccessToken(null)
         setCurrentUser(null)
         set_api_token(null)
-
-        // Step 3: revoke server-side session (best-effort).
-        try {
-            await logout_user()
-        } catch (err) {
-            // Log so the failure is visible in monitoring.
-            // The httpOnly cookie will expire in ≤7 days — known tradeoff.
-            console.error('[auth] logout server call failed:', err?.message)
-        }
     }
 
     // ─── Context value ────────────────────────────────────────────

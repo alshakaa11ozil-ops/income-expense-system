@@ -22,6 +22,7 @@ import {
     create_record,
     update_record,
 } from '../../services/api'
+import { parse_currency } from '../../utils/format_currency'
 
 /*
  * COMPONENT : RecordForm
@@ -136,7 +137,13 @@ export default function RecordForm({
      */
     function handle_change(e) {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+        let final_value = value
+        
+        if (name === 'amount') {
+            final_value = parse_currency(value)
+        }
+        
+        setFormData(prev => ({ ...prev, [name]: final_value }))
         // clear the specific field error so the user sees immediate feedback
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: undefined }))
@@ -261,7 +268,7 @@ export default function RecordForm({
                     </label>
                     {is_edit && (
                         // Fixed badge — visually signals the field cannot be changed
-                        <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                        <span className="text-xs bg-slate-300 text-slate-600 px-2 py-0.5 rounded-full font-medium">
                             Fixed
                         </span>
                     )}
@@ -281,16 +288,16 @@ export default function RecordForm({
                         disabled={is_edit || is_generating_id}
                         readOnly={is_edit}
                         className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors ${is_edit
-                                ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-slate-200'
+                                ? 'bg-slate-200 text-slate-500 cursor-not-allowed border-slate-300'
                                 : errors.id
                                     ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500 outline-none'
-                                    : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
+                                    : 'border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
                             }`}
                     />
                     {/* spinner shown while fetching suggested ID */}
                     {is_generating_id && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <svg className="animate-spin w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                             </svg>
@@ -300,12 +307,12 @@ export default function RecordForm({
 
                 {/* Contextual hint text below the ID field */}
                 {!is_edit && !errors.id && (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-500">
                         Auto-generated — you can change this to any unique ID
                     </p>
                 )}
                 {is_edit && (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-500">
                         Record ID cannot be changed after creation
                     </p>
                 )}
@@ -324,7 +331,7 @@ export default function RecordForm({
                         name="type"
                         value={form_data.type}
                         onChange={handle_change}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50"
                     >
                         <option value="expense">Expense</option>
                         <option value="income">Income</option>
@@ -352,7 +359,7 @@ export default function RecordForm({
                         placeholder="0.00"
                         className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors ${errors.amount
                                 ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500'
-                                : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                                : 'border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                             }`}
                     />
                     {errors.amount && <p className="mt-1 text-xs text-red-600">{errors.amount}</p>}
@@ -368,9 +375,9 @@ export default function RecordForm({
                     name="category_id"
                     value={form_data.category_id}
                     onChange={handle_change}
-                    className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors bg-white ${errors.category_id
+                    className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors bg-slate-50 ${errors.category_id
                             ? 'border-red-300 bg-red-50'
-                            : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            : 'border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                 >
                     <option value="">Select a category...</option>
@@ -397,7 +404,7 @@ export default function RecordForm({
                     onChange={handle_change}
                     className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors ${errors.date
                             ? 'border-red-300 bg-red-50'
-                            : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            : 'border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                 />
                 {errors.date && <p className="mt-1 text-xs text-red-600">{errors.date}</p>}
@@ -406,7 +413,7 @@ export default function RecordForm({
             {/* ── Operator ──────────────────────────────────────── */}
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Operator <span className="text-slate-400 text-xs font-normal">(optional)</span>
+                    Operator <span className="text-slate-500 text-xs font-normal">(optional)</span>
                 </label>
                 {/*
           WHY pre-fill with current_user.username:
@@ -422,7 +429,7 @@ export default function RecordForm({
                     placeholder="Who entered this record?"
                     className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-colors ${errors.operator
                             ? 'border-red-300 bg-red-50'
-                            : 'border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            : 'border-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
                 />
                 {errors.operator && (
@@ -433,7 +440,7 @@ export default function RecordForm({
             {/* ── Notes (optional) ──────────────────────────────── */}
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Notes <span className="text-slate-400 text-xs font-normal">(optional)</span>
+                    Notes <span className="text-slate-500 text-xs font-normal">(optional)</span>
                 </label>
                 <textarea
                     name="notes"
@@ -441,7 +448,7 @@ export default function RecordForm({
                     onChange={handle_change}
                     placeholder="Any additional details..."
                     rows={2}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-400 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
                 />
             </div>
 
@@ -451,7 +458,7 @@ export default function RecordForm({
                     type="button"
                     onClick={on_close}
                     disabled={is_submitting}
-                    className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg border border-slate-400 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"
                 >
                     Cancel
                 </button>

@@ -24,16 +24,13 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
-        /*
-         * WHY changeOrigin: true:
-         *   Rewrites the Host header of the proxied request to match
-         *   the target (localhost:5000). Required when Express checks
-         *   the Origin or Host header for CORS validation — without
-         *   this the header still reads localhost:5173 and CORS can
-         *   reject the request even though it came through the proxy.
-         */
         changeOrigin: true,
       },
     },
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: []
+  }
 })

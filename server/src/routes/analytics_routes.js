@@ -77,6 +77,23 @@ router.get(
 );
 
 /*
+ * GET /api/analytics/categories/activity
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Returns BOTH income and expense totals for each category
+ *            for the given month. Used by Categories management page.
+ *
+ * QUERY    : ?month=5&year=2026
+ *
+ * MIDDLEWARE: attach_user
+ * ─────────────────────────────────────────────────────────
+ */
+router.get(
+    '/analytics/categories/activity',
+    attach_user,
+    analytics_controller.category_activity
+);
+
+/*
  * GET /api/analytics/daily
  * ─────────────────────────────────────────────────────────
  * WHY      : Returns a running balance for each calendar day in a

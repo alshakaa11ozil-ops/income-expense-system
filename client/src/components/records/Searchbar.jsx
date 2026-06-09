@@ -157,7 +157,7 @@ export default function SearchBar({ category_list = [] }) {
     // ── Render ─────────────────────────────────────────────────
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+        <div className="bg-slate-50 rounded-xl border border-slate-300 p-4 space-y-3">
 
             {/* Row 1: text filters */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -165,7 +165,7 @@ export default function SearchBar({ category_list = [] }) {
                 {/* Record ID text search */}
                 <div className="relative">
                     <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
@@ -174,7 +174,7 @@ export default function SearchBar({ category_list = [] }) {
                         value={record_id_input}
                         onChange={e => setRecordIdInput(e.target.value)}
                         placeholder="Search by Record ID..."
-                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                 </div>
 
@@ -182,7 +182,7 @@ export default function SearchBar({ category_list = [] }) {
                 <select
                     value={type_input}
                     onChange={e => setTypeInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-700"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50 text-slate-700"
                 >
                     <option value="">All Types</option>
                     <option value="income">Income</option>
@@ -193,7 +193,7 @@ export default function SearchBar({ category_list = [] }) {
                 <select
                     value={category_input}
                     onChange={e => setCategoryInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-700"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50 text-slate-700"
                 >
                     <option value="">All Categories</option>
                     {category_list.map(cat => (
@@ -206,7 +206,7 @@ export default function SearchBar({ category_list = [] }) {
 
             {/* Row 2: date presets */}
             <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400 font-medium">Quick:</span>
+                <span className="text-xs text-slate-500 font-medium">Quick:</span>
                 {[
                     { key: 'this_month', label: 'This Month' },
                     { key: 'past_3_months', label: 'Past 3 Months' },
@@ -218,7 +218,7 @@ export default function SearchBar({ category_list = [] }) {
                         onClick={() => apply_preset(key)}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${is_preset_active(key)
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                : 'bg-slate-200 text-slate-600 hover:bg-slate-400'
                             }`}
                     >
                         {label}
@@ -233,15 +233,15 @@ export default function SearchBar({ category_list = [] }) {
                         type="date"
                         value={date_from_input}
                         onChange={e => setDateFromInput(e.target.value)}
-                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         aria-label="Date from"
                     />
-                    <span className="text-slate-400 text-sm flex-shrink-0">→</span>
+                    <span className="text-slate-500 text-sm flex-shrink-0">→</span>
                     <input
                         type="date"
                         value={date_to_input}
                         onChange={e => setDateToInput(e.target.value)}
-                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-400 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         aria-label="Date to"
                     />
                 </div>
@@ -251,7 +251,7 @@ export default function SearchBar({ category_list = [] }) {
                     <button
                         type="button"
                         onClick={clear_all}
-                        className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
+                        className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-400 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-colors"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

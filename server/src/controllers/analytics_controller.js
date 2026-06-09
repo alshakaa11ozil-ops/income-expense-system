@@ -56,6 +56,7 @@ async function summary(req, res, next) {
             params = {
                 month: Number(month) || (now.getMonth() + 1),
                 year: Number(year) || now.getFullYear(),
+                category_id: req.query.category_id,
             };
         }
 
@@ -83,7 +84,8 @@ async function summary(req, res, next) {
 async function trends(req, res, next) {
     try {
         const months_back = Number(req.query.months_back) || 6;
-        const result = await analytics_service.get_monthly_trends(req.user.id, months_back);
+        const category_id = req.query.category_id;
+        const result = await analytics_service.get_monthly_trends(req.user.id, months_back, category_id);
         send_success(res, result);
     } catch (err) {
         next(err);
@@ -171,10 +173,32 @@ async function system_summary(req, res, next) {
     }
 }
 
+/*
+ * FUNCTION : category_activity
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Serves the activity mapping for both income and expense
+ *            per category. 
+ *
+ * HOW      : 1. Read optional month/year
+ *            2. Delegate to get_category_activity_map
+ * ─────────────────────────────────────────────────────────
+ */
+async function category_activity(req, res, next) {
+    try {
+        const month = Number(req.query.month) || current_month;
+        const year = Number(req.query.year) || current_year;
+        const result = await analytics_service.get_category_activity_map(req.user.id, month, year);
+        send_success(res, result);
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     summary,
     trends,
     categories,
+    category_activity,
     daily_balance,
     system_summary,
 };

@@ -226,16 +226,16 @@ function RegisterPage() {
 
   // ─── Render ──────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 px-8 py-10">
+        <div className="bg-slate-50 rounded-2xl shadow-sm border border-slate-300 px-8 py-10">
 
           {/* Logo / app name */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-4">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-6 h-6 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
@@ -270,10 +270,10 @@ function RegisterPage() {
                 disabled={is_submitting}
                 className={`
                   w-full px-3.5 py-2.5 rounded-lg border text-sm text-slate-900
-                  placeholder:text-slate-400 bg-white
+                  placeholder:text-slate-500 bg-slate-50
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                  disabled:bg-slate-50 disabled:text-slate-400 transition-colors
-                  ${errors.username ? 'border-red-400 bg-red-50' : 'border-slate-300'}
+                  disabled:bg-slate-100 disabled:text-slate-500 transition-colors
+                  ${errors.username ? 'border-red-400 bg-red-50' : 'border-slate-400'}
                 `}
                 placeholder="jane_doe"
               />
@@ -294,10 +294,10 @@ function RegisterPage() {
                 disabled={is_submitting}
                 className={`
                   w-full px-3.5 py-2.5 rounded-lg border text-sm text-slate-900
-                  placeholder:text-slate-400 bg-white
+                  placeholder:text-slate-500 bg-slate-50
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                  disabled:bg-slate-50 disabled:text-slate-400 transition-colors
-                  ${errors.email ? 'border-red-400 bg-red-50' : 'border-slate-300'}
+                  disabled:bg-slate-100 disabled:text-slate-500 transition-colors
+                  ${errors.email ? 'border-red-400 bg-red-50' : 'border-slate-400'}
                 `}
                 placeholder="you@example.com"
               />
@@ -319,17 +319,17 @@ function RegisterPage() {
                   disabled={is_submitting}
                   className={`
                     w-full px-3.5 py-2.5 pr-11 rounded-lg border text-sm text-slate-900
-                    placeholder:text-slate-400 bg-white
+                    placeholder:text-slate-500 bg-slate-50
                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                    disabled:bg-slate-50 disabled:text-slate-400 transition-colors
-                    ${errors.password ? 'border-red-400 bg-red-50' : 'border-slate-300'}
+                    disabled:bg-slate-100 disabled:text-slate-500 transition-colors
+                    ${errors.password ? 'border-red-400 bg-red-50' : 'border-slate-400'}
                   `}
                   placeholder="Min. 8 characters"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
                   aria-label={show_password ? 'Hide password' : 'Show password'}
                 >
                   {show_password ? (
@@ -348,7 +348,7 @@ function RegisterPage() {
               {/* Password strength bar — only shown when password is non-empty */}
               {password && (
                 <div className="mt-2">
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${strength.width} ${strength.color}`}
                     />
@@ -379,10 +379,10 @@ function RegisterPage() {
                 disabled={is_submitting}
                 className={`
                   w-full px-3.5 py-2.5 rounded-lg border text-sm text-slate-900
-                  placeholder:text-slate-400 bg-white
+                  placeholder:text-slate-500 bg-slate-50
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                  disabled:bg-slate-50 disabled:text-slate-400 transition-colors
-                  ${errors.confirm_password ? 'border-red-400 bg-red-50' : 'border-slate-300'}
+                  disabled:bg-slate-100 disabled:text-slate-500 transition-colors
+                  ${errors.confirm_password ? 'border-red-400 bg-red-50' : 'border-slate-400'}
                 `}
                 placeholder="Repeat your password"
               />
@@ -403,7 +403,7 @@ function RegisterPage() {
             >
               {is_submitting ? (
                 <>
-                  <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin w-4 h-4 text-slate-900" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>

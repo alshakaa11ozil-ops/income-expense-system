@@ -9,8 +9,15 @@
  * ============================================================
  * EXPORTS:
  *   - format_currency : formats "1500.00" → "$1,500.00"
+ *   - parse_currency  : strips non-numeric characters (e.g. "$2,500" → "2500")
  * ============================================================
  */
+
+export function parse_currency(str_amount) {
+    if (str_amount === null || str_amount === undefined) return '';
+    return String(str_amount).replace(/[^\d.]/g, '');
+}
+
 
 /*
  * FUNCTION : format_currency

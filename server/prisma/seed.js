@@ -37,43 +37,23 @@ const SYSTEM_CATEGORIES = [
   // ── Income ──────────────────────────────────────────────
   { name: 'Salary',        icon: '💰', color: '#10B981', display_order: 1  },
   { name: 'Freelance',     icon: '💻', color: '#06B6D4', display_order: 2  },
-  { name: 'Business',      icon: '🏢', color: '#3B82F6', display_order: 3  },
-  { name: 'Investment',    icon: '📈', color: '#8B5CF6', display_order: 4  },
-  { name: 'Gift',          icon: '🎁', color: '#F59E0B', display_order: 5  },
-  { name: 'Other Income',  icon: '💵', color: '#6B7280', display_order: 6  },
+  { name: 'Investment',    icon: '📈', color: '#8B5CF6', display_order: 3  },
+  { name: 'Other Income',  icon: '💵', color: '#6B7280', display_order: 4  },
 
-  // ── Housing & Bills ─────────────────────────────────────
-  { name: 'Rent',          icon: '🏠', color: '#3B82F6', display_order: 7  },
-  { name: 'Electricity',   icon: '⚡', color: '#EAB308', display_order: 8  },
-  { name: 'Water',         icon: '💧', color: '#0EA5E9', display_order: 9  },
-  { name: 'Internet',      icon: '📡', color: '#6366F1', display_order: 10 },
-  { name: 'Phone Bill',    icon: '📱', color: '#8B5CF6', display_order: 11 },
+  // ── Housing & Daily Living ───────────────────────────────
+  { name: 'Rent',          icon: '🏠', color: '#3B82F6', display_order: 5  },
+  { name: 'Groceries',     icon: '🛒', color: '#22C55E', display_order: 6  },
+  { name: 'Transport',     icon: '🚌', color: '#6366F1', display_order: 7  },
+  { name: 'Utilities',     icon: '⚡', color: '#EAB308', display_order: 8  },
 
-  // ── Daily Living ─────────────────────────────────────────
-  { name: 'Groceries',     icon: '🛒', color: '#22C55E', display_order: 12 },
-  { name: 'Dining Out',    icon: '🍔', color: '#F97316', display_order: 13 },
-  { name: 'Coffee',        icon: '☕', color: '#92400E', display_order: 14 },
-  { name: 'Transport',     icon: '🚌', color: '#6366F1', display_order: 15 },
-  { name: 'Fuel',          icon: '⛽', color: '#DC2626', display_order: 16 },
+  // ── Personal & Leisure ───────────────────────────────────
+  { name: 'Healthcare',    icon: '🏥', color: '#EF4444', display_order: 9  },
+  { name: 'Education',     icon: '📚', color: '#2563EB', display_order: 10 },
+  { name: 'Entertainment', icon: '🎬', color: '#A855F7', display_order: 11 },
+  { name: 'Savings',       icon: '🏦', color: '#0F766E', display_order: 12 },
 
-  // ── Personal ─────────────────────────────────────────────
-  { name: 'Healthcare',    icon: '🏥', color: '#EF4444', display_order: 17 },
-  { name: 'Clothing',      icon: '👕', color: '#EC4899', display_order: 18 },
-  { name: 'Personal Care', icon: '🧴', color: '#F9A8D4', display_order: 19 },
-  { name: 'Education',     icon: '📚', color: '#2563EB', display_order: 20 },
-  { name: 'Subscriptions', icon: '📺', color: '#7C3AED', display_order: 21 },
-
-  // ── Leisure ──────────────────────────────────────────────
-  { name: 'Entertainment', icon: '🎬', color: '#A855F7', display_order: 22 },
-  { name: 'Travel',        icon: '✈️', color: '#0284C7', display_order: 23 },
-  { name: 'Sports',        icon: '🏋️', color: '#16A34A', display_order: 24 },
-  { name: 'Shopping',      icon: '🛍️', color: '#DB2777', display_order: 25 },
-
-  // ── Financial ────────────────────────────────────────────
-  { name: 'Savings',       icon: '🏦', color: '#0F766E', display_order: 26 },
-  { name: 'Insurance',     icon: '🛡️', color: '#1D4ED8', display_order: 27 },
-  { name: 'Tax',           icon: '📋', color: '#374151', display_order: 28 },
-  { name: 'Other Expense', icon: '📁', color: '#9CA3AF', display_order: 29 },
+  // ── Catch-all ────────────────────────────────────────────
+  { name: 'Other Expense', icon: '📁', color: '#9CA3AF', display_order: 13 },
 ];
 
 /* ──────────────────────────────────────────────────────────
