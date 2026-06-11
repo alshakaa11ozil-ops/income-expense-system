@@ -127,9 +127,43 @@ async function update_last_login(user_id) {
     });
 }
 
+/*
+ * FUNCTION : find_by_id_with_password
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Password change requires bcrypt.compare with the stored hash.
+ *            This variant includes it for the one service function that needs it.
+ * @param   {string}   user_id
+ * @returns {object|null} Full user record WITH password, or null
+ * ─────────────────────────────────────────────────────────
+ */
+async function find_by_id_with_password(user_id) {
+    return prisma.user.findUnique({
+        where: { id: user_id },
+    });
+}
+
+/*
+ * FUNCTION : update_password
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Persists a new bcrypt-hashed password.
+ * @param   {string}   user_id
+ * @param   {string}   hashed_new_password
+ * @returns {object} Updated user record (no password)
+ * ─────────────────────────────────────────────────────────
+ */
+async function update_password(user_id, hashed_new_password) {
+    return prisma.user.update({
+        where: { id: user_id },
+        data: { password: hashed_new_password },
+        select: SAFE_USER_SELECT,
+    });
+}
+
 module.exports = {
     create_user,
     find_by_email,
     find_by_id,
     update_last_login,
+    find_by_id_with_password,
+    update_password,
 };

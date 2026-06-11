@@ -18,6 +18,7 @@ import React, { useState } from 'react'
 import { format_currency } from '../../utils/format_currency'
 import { handle_ai_error } from '../../utils/ai_error_helper'
 import { ai_advise_purchase } from '../../services/api'
+import { useToast } from '../layout/useToast'
 
 /*
  * COMPONENT : PurchaseAdvisor
@@ -37,6 +38,7 @@ import { ai_advise_purchase } from '../../services/api'
  * ─────────────────────────────────────────────────────────
  */
 export default function PurchaseAdvisor({ on_request_complete }) {
+    const { show_toast } = useToast()
     const [item_name, setItemName] = useState('')
     const [item_cost, setItemCost] = useState('')
     const [planned_date, setPlannedDate] = useState('')
@@ -72,9 +74,10 @@ export default function PurchaseAdvisor({ on_request_complete }) {
                 planned_date,
             )
             setResult(data)
+            show_toast('Purchase analysis complete.', 'success')
             on_request_complete()
         } catch (err) {
-            handle_ai_error(err, setError)
+            handle_ai_error(err, setError, show_toast)
         } finally {
             setIsLoading(false)
         }

@@ -119,6 +119,15 @@ export default function BudgetGoalsDashboard({
             {/* ── Goal rows ── */}
             {goals.map(goal => {
                 /*
+                 * WHY normalize category fields:
+                 *   API returns nested goal.category — not flat category_name.
+                 *   Without this, names/icons never render in the tracker.
+                 */
+                const category_name = goal.category_name ?? goal.category?.name ?? 'Unknown'
+                const category_icon = goal.icon ?? goal.category?.icon ?? '📁'
+                const category_color = goal.color ?? goal.category?.color ?? '#6366F1'
+
+                /*
                  * WHY cap bar width at 100%:
                  *   Overflow breaks the container layout — the bar would
                  *   escape its rounded parent. The text already shows the
@@ -135,33 +144,33 @@ export default function BudgetGoalsDashboard({
                     <div key={goal.goal_id} className="group">
 
                         {/* Row header */}
-                        <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2">
-                                {/* Category icon circle */}
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2.5">
                                 <span
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
-                                    style={{ backgroundColor: `${goal.color}25` }}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-base"
+                                    style={{ backgroundColor: `${category_color}25` }}
                                 >
-                                    {goal.icon}
+                                    {category_icon}
                                 </span>
-                                <span className="text-sm font-medium text-slate-900">
-                                    {goal.category_name}
+                                <span className="text-base font-semibold text-slate-900">
+                                    {category_name}
                                 </span>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <span className="text-sm text-slate-500">
-                                    {format_currency(goal.goal_amount)} target
+                                <span className="text-base font-semibold text-slate-800">
+                                    {category_name}
+                                    <span className="text-slate-500 font-normal"> target </span>
+                                    {format_currency(goal.goal_amount)}
                                 </span>
 
-                                {/* Delete button — only visible on hover */}
                                 <button
                                     onClick={() => on_goal_deleted(goal.goal_id)}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity
-                                               text-slate-500 hover:text-red-400 text-lg leading-none
+                                               text-slate-500 hover:text-red-500 text-lg leading-none
                                                w-5 h-5 flex items-center justify-center"
-                                    title={`Remove ${goal.category_name} from budget`}
-                                    aria-label={`Remove ${goal.category_name} from budget`}
+                                    title={`Remove ${category_name} from budget`}
+                                    aria-label={`Remove ${category_name} from budget`}
                                 >
                                     ×
                                 </button>
@@ -169,7 +178,7 @@ export default function BudgetGoalsDashboard({
                         </div>
 
                         {/* Progress bar */}
-                        <div className="h-2.5 w-full bg-slate-300/60 rounded-full overflow-hidden">
+                        <div className="h-3 w-full bg-slate-300/60 rounded-full overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${bar_colour}`}
                                 style={{ width: `${bar_width}%` }}
@@ -177,14 +186,15 @@ export default function BudgetGoalsDashboard({
                         </div>
 
                         {/* Amounts row */}
-                        <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-slate-500">
+                        <div className="flex items-center justify-between mt-1.5">
+                            <span className="text-sm text-slate-600">
+                                <span className="font-medium text-slate-800">{category_name}</span>
+                                {' · '}
                                 {format_currency(goal.spent)} spent of {format_currency(goal.goal_amount)}
                             </span>
 
-                            {/* Over-budget callout */}
                             {goal.is_over_budget && over_amount && (
-                                <span className="text-xs text-red-400 font-medium">
+                                <span className="text-sm text-red-600 font-semibold">
                                     Over budget by {format_currency(over_amount)}
                                 </span>
                             )}
@@ -195,18 +205,19 @@ export default function BudgetGoalsDashboard({
             })}
 
             {/* ── Summary footer ── */}
-            <div className="pt-4 border-t border-slate-400/50 flex justify-between text-sm">
+            <div className="pt-4 border-t border-slate-300 flex justify-between text-base">
                 <div>
-                    <span className="text-slate-500">Total planned: </span>
-                    <span className="text-slate-900 font-medium">
+                    <span className="text-slate-700 font-medium">Total planned: </span>
+                    <span className="text-slate-900 font-bold text-lg">
                         {format_currency(total_planned.toFixed(2))}
                     </span>
                 </div>
                 <div>
-                    <span className="text-slate-500">Total spent: </span>
+                    <span className="text-slate-700 font-medium">Total spent: </span>
                     <span
-                        className={`font-medium ${total_spent > total_planned ? 'text-red-400' : 'text-emerald-400'
-                            }`}
+                        className={`font-bold text-lg ${
+                            total_spent > total_planned ? 'text-red-600' : 'text-emerald-700'
+                        }`}
                     >
                         {format_currency(total_spent.toFixed(2))}
                     </span>

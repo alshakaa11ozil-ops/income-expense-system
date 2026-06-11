@@ -334,10 +334,52 @@ async function get_current_user(user_id) {
     return user;
 }
 
+/*
+ * FUNCTION : change_password
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Allows a user to update their own password.
+ *            Requires current password to prevent unauthorized changes.
+ * @param   {string}   user_id
+ * @param   {string}   current_password
+ * @param   {string}   new_password
+ * @returns {object}   Success message
+ * @throws  {Error}    400 if current password wrong or new password too short
+ * ─────────────────────────────────────────────────────────
+ */
+async function change_password(user_id, current_password, new_password) {
+    // Validate new_password FIRST (cheap check) before the slow bcrypt.compare
+    if (!new_password || new_password.length < 8) {
+        const err = new Error('Password must be at least 8 characters');
+        err.status = 400;
+        throw err;
+    }
+
+    const user = await user_model.find_by_id_with_password(user_id);
+    if (!user) {
+        const err = new Error('User not found.');
+        err.status = 404;
+        throw err;
+    }
+
+    // Verify current password — bcrypt.compare is intentionally slow (~100ms)
+    const password_matches = await bcrypt.compare(current_password, user.password);
+    if (!password_matches) {
+        const err = new Error('Current password is incorrect.');
+        err.status = 400;
+        throw err;
+    }
+
+    const hashed_password = await bcrypt.hash(new_password, SALT_ROUNDS);
+    await user_model.update_password(user_id, hashed_password);
+    
+    return { message: 'Password updated successfully' };
+}
+
 module.exports = {
     register_user,
     login_user,
     refresh_access_token,
     logout_user,
     get_current_user,
+    change_password,
 };

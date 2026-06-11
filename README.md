@@ -34,32 +34,47 @@ client/src/                        SERVER: MVC LAYERS
 
 ## Features
 
-### Teacher Requirements (Q13)
+### Core (Teacher Requirements — Q13)
 - **Add** records with duplicate ID check and mandatory field validation
-- **Edit** records — record ID is permanently fixed/read-only
+- **Edit** records — Record ID is permanently fixed after creation
 - **Delete** records directly from the list view
-- **Search & Filter** by record ID, type, or category with server-side pagination
+- **Search** by record ID, type, category with server-side pagination
 
 ### Authentication
-- Register / Login / Logout
-- JWT access tokens (15 min) + refresh tokens (7 days, httpOnly cookie)
+- JWT access tokens (15 min) + refresh tokens (7-day httpOnly cookie)
+- bcrypt password hashing (saltRounds = 12)
+- Role-based access: USER and ADMIN roles
 - Rate limiting on auth endpoints
+- User profile page with self-service password change
 
 ### Dashboard
-- Summary cards: total income, total expense, net balance
+- Summary cards: total income, total expense, net balance (current month)
 - Line chart: income vs expense over last 6 months
 - Pie chart: spending breakdown by category
-- Recent 5 records
+- Recent 5 records with View All link
 
-### AI Assistant (Anthropic Claude)
-- **Expense Planner** — budget allocation based on past spending
-- **Purchase Advisor** — "Can I afford to buy X?"
-- **Finance Chat** — free-form questions about your data
+### Categories
+- 27 built-in system categories with icons and colors
+- Personal categories per user with monthly spending limits
+- Progress bars track actual vs planned spending
+
+### AI Features (Google Gemini Flash)
+- **Budget Planner** — AI suggests monthly allocations, user saves as goals
+- **Purchase Advisor** — affordability verdict with savings timeline
+- **Finance Chat** — free-form Q&A with full financial context
+- DB-backed response caching — repeated questions served instantly
+- Daily limits: 10/day (USER), 50/day (ADMIN)
+
+### Admin Panel
+- User management: promote roles, activate/deactivate accounts
+- Audit view: any user's records including soft-deleted ones
+- Restore soft-deleted records or permanently remove them
+- Platform analytics and AI usage reporting
 
 ### Extras
 - Export records to CSV
-- Date range filtering
-- Bulk delete
+- Date range filtering with quick buttons
+- Bulk delete with checkboxes
 
 ---
 
@@ -135,6 +150,7 @@ cd client && npm run dev     # Frontend on :5173
 | POST | `/api/auth/refresh` | Refresh access token | Cookie |
 | POST | `/api/auth/logout` | Revoke refresh token | Yes |
 | GET | `/api/auth/me` | Get current user | Yes |
+| PATCH | `/api/auth/me/password` | Change own password | Yes |
 
 ### Records
 | Method | Endpoint | Description | Auth Required |
@@ -294,10 +310,10 @@ TABLE records (
 
 ## Deliverables (Instructor Checklist)
 
-- [x] Source code following MVC structure
-- [x] Database schema (SQL scripts in `/server/prisma/migrations/`)
-- [x] API documentation (this README + Swagger at `/api/docs`)
-- [x] User manual (see `/docs/USER_MANUAL.md`)
+- ✅ Source code — MVC structure (controllers/ services/ models/)
+- ✅ Database schema — `docs/schema.sql`
+- ✅ API documentation — `docs/API_Documentation.md`
+- ✅ User manual — `docs/User_Manual.md`
 
 ---
 

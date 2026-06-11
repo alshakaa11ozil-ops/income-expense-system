@@ -47,7 +47,7 @@ export default function Layout() {
          *   min-h-screen ensures the sidebar reaches the bottom even
          *   on pages with little content.
          */
-        <div className="flex min-h-screen bg-slate-100">
+        <div className="flex h-screen overflow-hidden bg-slate-100">
             <Sidebar />
             {/*
              * WHY flex-1 + overflow-y-auto:
@@ -55,7 +55,7 @@ export default function Layout() {
              *   sidebar. overflow-y-auto lets long pages scroll
              *   independently without the sidebar scrolling with them.
              */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 h-full overflow-y-auto">
                 <Outlet />
             </main>
         </div>

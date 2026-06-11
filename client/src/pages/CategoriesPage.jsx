@@ -165,9 +165,13 @@ export default function CategoriesPage() {
         } catch (err) {
             const status = err.response?.status;
             if (status === 409) {
-                setFormError('A category with this name already exists.');
+                const msg = 'A category with this name already exists.';
+                setFormError(msg);
+                show_toast(msg, 'error');
             } else {
-                setFormError(err.response?.data?.message || 'Action failed.');
+                const msg = err.response?.data?.error || err.response?.data?.message || 'Action failed.';
+                setFormError(msg);
+                show_toast(msg, 'error');
             }
         } finally {
             setIsSaving(false);

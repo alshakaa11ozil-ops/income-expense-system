@@ -123,7 +123,7 @@ export default function ExpensePlanner({ on_request_complete }) {
      */
     const handle_goal_deleted = async (goal_id) => {
         const goal = goals.find(g => g.goal_id === goal_id)
-        const name = goal?.category_name ?? 'category'
+        const name = goal?.category_name ?? goal?.category?.name ?? 'category'
         if (!window.confirm(`Remove ${name} from your budget plan?`)) return
         try {
             await delete_budget_goal_by_id(goal_id)
@@ -164,9 +164,10 @@ export default function ExpensePlanner({ on_request_complete }) {
                     editable_amount: item.suggested_amount,
                 }))
             )
+            show_toast('Budget plan generated.', 'success')
             on_request_complete()
         } catch (err) {
-            handle_ai_error(err, setPlanError)
+            handle_ai_error(err, setPlanError, show_toast)
         } finally {
             setIsGenerating(false)
         }
@@ -196,7 +197,7 @@ export default function ExpensePlanner({ on_request_complete }) {
             setViewYear(plan_year)
             load_goals(plan_month, plan_year)
         } catch (err) {
-            handle_ai_error(err, setPlanError)
+            handle_ai_error(err, setPlanError, show_toast)
         } finally {
             setIsSaving(false)
         }
@@ -483,29 +484,29 @@ export default function ExpensePlanner({ on_request_complete }) {
                                 </tbody>
                                 {/* Table footer — running total */}
                                 <tfoot>
-                                    <tr className="border-t border-slate-600">
-                                        <td className="py-3 pr-4 text-slate-600 font-semibold">
+                                    <tr className="border-t-2 border-slate-400 bg-slate-50">
+                                        <td className="py-4 pr-4 text-base text-slate-800 font-bold">
                                             Total
                                         </td>
-                                        <td className="py-3 px-4 text-right text-slate-500">
+                                        <td className="py-4 px-4 text-right text-base text-slate-700 font-semibold">
                                             {format_currency(
                                                 ai_plan.reduce((s, i) =>
                                                     s + parseFloat(i.suggested_amount || 0), 0
                                                 ).toFixed(2)
                                             )}
                                         </td>
-                                        <td className="py-3 px-4 text-right font-semibold">
-                                            <span className={
+                                        <td className="py-4 px-4 text-right">
+                                            <span className={`text-lg font-bold ${
                                                 Math.abs(plan_total - target_num) < 0.01
-                                                    ? 'text-emerald-400'
+                                                    ? 'text-emerald-700'
                                                     : plan_total > target_num
-                                                        ? 'text-red-400'
-                                                        : 'text-white'
-                                            }>
+                                                        ? 'text-red-600'
+                                                        : 'text-amber-700'
+                                            }`}>
                                                 {format_currency(plan_total.toFixed(2))}
                                             </span>
                                         </td>
-                                        <td colSpan={2} className="py-3 pl-4 text-xs text-slate-500">
+                                        <td colSpan={2} className="py-4 pl-4 text-sm font-semibold text-slate-700">
                                             {plan_total > target_num
                                                 ? `${format_currency((plan_total - target_num).toFixed(2))} over budget`
                                                 : plan_total < target_num

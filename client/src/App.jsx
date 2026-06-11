@@ -33,6 +33,7 @@ import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import AiAssistantPage from './pages/AiAssistantPage'
 import AdminPage from './pages/AdminPage'
+import ProfilePage from './pages/ProfilePage'
 /*
  * COMPONENT : App
  * ─────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ function App() {
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/ai" element={<AiAssistantPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
 
             </Route>
 

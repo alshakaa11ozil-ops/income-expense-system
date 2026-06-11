@@ -233,12 +233,15 @@ export default function RecordForm({
             const message = err?.response?.data?.error ?? 'Something went wrong'
 
             if (status === 409) {
-                // duplicate ID — show error under the ID field, not in a popup
-                setErrors({ id: 'This Record ID already exists. Choose a different ID.' })
+                const id_msg = 'This Record ID already exists. Choose a different ID.'
+                setErrors({ id: id_msg })
+                show_toast(id_msg, 'error')
             } else if (status === 400) {
                 setErrors({ general: message })
+                show_toast(message, 'error')
             } else {
                 setErrors({ general: message })
+                show_toast(message, 'error')
             }
         } finally {
             setIsSubmitting(false)

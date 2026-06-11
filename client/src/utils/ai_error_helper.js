@@ -94,6 +94,8 @@ export function get_ai_error_message(err) {
  * @returns {void}
  * ─────────────────────────────────────────────────────────
  */
-export function handle_ai_error(err, set_error) {
-    set_error(get_ai_error_message(err))
+export function handle_ai_error(err, set_error, show_toast) {
+    const message = get_ai_error_message(err)
+    if (set_error) set_error(message)
+    if (show_toast) show_toast(message, 'error')
 }

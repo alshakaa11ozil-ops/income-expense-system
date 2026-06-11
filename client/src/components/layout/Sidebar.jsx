@@ -28,6 +28,7 @@
 
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/auth_context'
+import { useToast } from './useToast'
 
 // ── Navigation items ─────────────────────────────────────────
 /*
@@ -91,6 +92,7 @@ const nav_items = [
  */
 export default function Sidebar() {
     const { current_user, logout_user } = useAuth()
+    const { show_toast } = useToast()
     const navigate = useNavigate()
 
     /*
@@ -102,6 +104,7 @@ export default function Sidebar() {
      */
     async function handle_logout() {
         await logout_user()
+        show_toast('Logged out successfully.', 'success')
         navigate('/login', { replace: true })
     }
 
@@ -112,11 +115,11 @@ export default function Sidebar() {
          *   of page content length. flex-col lets us push the user
          *   section to the bottom with mt-auto.
          */
-        <aside className="w-60 min-h-screen bg-slate-50 flex flex-col shrink-0">
+        <aside className="w-60 h-full bg-slate-50 flex flex-col shrink-0">
 
             {/* ── Brand ───────────────────────────────────── */}
             <div className="px-6 py-6 border-b border-slate-300">
-                <div className="flex items-center gap-3">
+                <NavLink to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     {/* App icon — simple colored square with emoji */}
                     <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center text-lg">
                         💰
@@ -125,7 +128,7 @@ export default function Sidebar() {
                         <p className="text-slate-900 font-bold text-sm leading-tight">FinanceApp</p>
                         <p className="text-slate-500 text-xs">Income & Expense</p>
                     </div>
-                </div>
+                </NavLink>
             </div>
 
             {/* ── Navigation links ────────────────────────── */}
@@ -179,7 +182,10 @@ export default function Sidebar() {
             {/* ── User section ────────────────────────────── */}
             <div className="px-3 py-4 border-t border-slate-300">
                 {/* User info row */}
-                <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                <NavLink 
+                    to="/profile" 
+                    className={({ isActive }) => `group flex items-center gap-3 px-3 py-2 mb-2 rounded-lg transition-colors ${isActive ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : 'hover:bg-slate-200'}`}
+                >
                     {/*
                      * WHY show first letter of username:
                      *   A generated avatar is more personal than a generic
@@ -188,7 +194,7 @@ export default function Sidebar() {
                     <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
                         {current_user?.username?.[0]?.toUpperCase() ?? '?'}
                     </div>
-                    <div className="overflow-hidden">
+                    <div className="overflow-hidden text-left flex-1">
                         <p className="text-slate-900 text-sm font-medium truncate">
                             {current_user?.username ?? 'User'}
                         </p>
@@ -196,7 +202,11 @@ export default function Sidebar() {
                             {current_user?.role ?? ''}
                         </p>
                     </div>
-                </div>
+                    {/* Profile Icon to indicate clickability */}
+                    <svg className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </NavLink>
 
                 {/* Logout button */}
                 <button

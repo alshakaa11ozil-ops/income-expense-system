@@ -31,6 +31,7 @@ const Decimal = require('decimal.js');
 
 const ai_cache_model = require('../models/ai_cache_model');
 const ai_usage_model = require('../models/ai_usage_model');
+const category_model = require('../models/category_model');
 const analytics_service = require('./analytics_service');
 const budget_goal_service = require('./budget_goal_service');
 
@@ -40,15 +41,14 @@ const budget_goal_service = require('./budget_goal_service');
 const to_decimal = (val) => new Decimal(val ?? 0);
 
 // ─── Gemini client setup ─────────────────────────────────────────────────────
-// WHY gemini-2.0-flash: latest fast model — better accuracy than 1.5-flash
-//     with comparable speed. Ideal for interactive financial advice.
+// WHY gemini-2.5-flash: current free-tier model with reliable JSON output.
 const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const gemini_model = genai.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     generationConfig: {
         responseMimeType: 'application/json', // force structured output — no markdown wrappers
         temperature: 0.3,                     // low temperature = consistent, factual responses
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,                  // headroom for multi-category plan arrays
     },
 });
 
@@ -56,7 +56,7 @@ const gemini_model = genai.getGenerativeModel({
 // WHY plan is 24h: spending patterns don't change hour-by-hour.
 // WHY advise is 12h: user may add records mid-day, changing their surplus.
 // WHY analyze is 1h: free-form questions vary widely; short TTL = fresher answers.
-const TTL_PLAN = 24 * 60 * 60 * 1000;  // 24 hours in ms
+const TTL_PLAN = 30 * 24 * 60 * 60 * 1000;  // 30 days in ms
 const TTL_ADVISE = 12 * 60 * 60 * 1000;  // 12 hours in ms
 const TTL_ANALYZE = 1 * 60 * 60 * 1000;  //  1 hour  in ms
 
@@ -72,11 +72,27 @@ const plan_item_schema = z.array(
     })
 );
 
+// WHY preprocess: Gemini sometimes returns objects like
+// { category, action, amount } instead of plain strings.
+const adjustment_string = z.preprocess((val) => {
+    if (typeof val === 'string') return val;
+    if (val && typeof val === 'object') {
+        for (const key of ['suggestion', 'action', 'text', 'description', 'reason']) {
+            if (typeof val[key] === 'string') return val[key];
+        }
+        const parts = [val.category, val.action, val.amount, val.suggestion]
+            .filter((part) => part !== undefined && part !== null && part !== '');
+        if (parts.length > 0) return parts.join(' — ');
+        return JSON.stringify(val);
+    }
+    return String(val ?? '');
+}, z.string());
+
 const advise_schema = z.object({
     verdict: z.enum(['can_afford', 'wait', 'adjust_spending']),
     reasoning: z.string(),
     months_to_save: z.number().nullable().optional(),
-    suggested_adjustments: z.array(z.string()).optional(),
+    suggested_adjustments: z.array(adjustment_string).optional(),
 });
 
 const analyze_schema = z.object({
@@ -220,62 +236,77 @@ async function build_financial_context(user_id) {
  */
 async function call_gemini_safe(prompt, zod_schema) {
     const start_time = Date.now();
-
-    let response;
-    let attempts = 0;
+    const max_attempts = 3;
     let last_err;
+    let last_raw_text = '';
 
-    while (attempts < 3) {
+    for (let attempt = 1; attempt <= max_attempts; attempt++) {
         try {
-            response = await gemini_model.generateContent(prompt);
-            break; // Success!
+            const response = await gemini_model.generateContent(prompt);
+            const raw_text = response.response.text();
+            const tokens_used = response.response.usageMetadata?.totalTokenCount ?? null;
+            const finish_reason = response.response.candidates?.[0]?.finishReason ?? 'unknown';
+
+            // Strip markdown fences Gemini sometimes adds despite responseMimeType setting
+            const clean_text = raw_text
+                .replace(/^```json\s*/i, '')
+                .replace(/```\s*$/, '')
+                .trim();
+            last_raw_text = clean_text;
+
+            let parsed;
+            try {
+                parsed = JSON.parse(clean_text);
+            } catch (parse_err) {
+                console.error(
+                    `GEMINI PARSE ERROR (Attempt ${attempt}/${max_attempts}):`,
+                    parse_err.message,
+                    'finishReason:', finish_reason,
+                    'RAW TEXT:', clean_text.slice(0, 500),
+                );
+                last_err = parse_err;
+                if (attempt < max_attempts) {
+                    await new Promise(res => setTimeout(res, attempt * 2000));
+                    continue;
+                }
+                const error = new Error('AI_PARSE_ERROR: Gemini returned invalid JSON');
+                error.status = 502;
+                throw error;
+            }
+
+            const validated = zod_schema.safeParse(parsed);
+            if (!validated.success) {
+                console.error(`GEMINI SCHEMA ERROR (Attempt ${attempt}/${max_attempts}):`, validated.error);
+                last_err = validated.error;
+                if (attempt < max_attempts) {
+                    await new Promise(res => setTimeout(res, attempt * 2000));
+                    continue;
+                }
+                const error = new Error('AI_SCHEMA_ERROR: Gemini response did not match expected schema');
+                error.status = 502;
+                throw error;
+            }
+
+            return {
+                data: validated.data,
+                tokens_used,
+                response_time_ms: Date.now() - start_time,
+            };
         } catch (err) {
-            attempts++;
+            if (err.message?.startsWith('AI_')) throw err;
+
             last_err = err;
-            console.error(`GEMINI API ERROR (Attempt ${attempts}/3):`, err.message);
-            // Wait 2s, then 4s before retrying
-            if (attempts < 3) {
-                await new Promise(res => setTimeout(res, attempts * 2000));
+            console.error(`GEMINI API ERROR (Attempt ${attempt}/${max_attempts}):`, err.message);
+            if (attempt < max_attempts) {
+                await new Promise(res => setTimeout(res, attempt * 2000));
             }
         }
     }
 
-    if (!response) {
-        console.error("GEMINI API FATAL:", last_err);
-        const error = new Error('AI_UNAVAILABLE: Gemini API call failed after retries');
-        error.status = 502;
-        throw error;
-    }
-
-    const response_time_ms = Date.now() - start_time;
-    const raw_text = response.response.text();
-    const tokens_used = response.response.usageMetadata?.totalTokenCount ?? null;
-
-    // Strip markdown fences Gemini sometimes adds despite responseMimeType setting
-    const clean_text = raw_text
-        .replace(/^```json\s*/i, '')
-        .replace(/```\s*$/, '')
-        .trim();
-
-    let parsed;
-    try {
-        parsed = JSON.parse(clean_text);
-    } catch (err) {
-        console.error("GEMINI PARSE ERROR:", err, "RAW TEXT:", clean_text);
-        const error = new Error('AI_PARSE_ERROR: Gemini returned invalid JSON');
-        error.status = 502;
-        throw error;
-    }
-
-    const validated = zod_schema.safeParse(parsed);
-    if (!validated.success) {
-        console.error("GEMINI SCHEMA ERROR:", validated.error);
-        const error = new Error('AI_SCHEMA_ERROR: Gemini response did not match expected schema');
-        error.status = 502;
-        throw error;
-    }
-
-    return { data: validated.data, tokens_used, response_time_ms };
+    console.error('GEMINI API FATAL:', last_err, last_raw_text ? `LAST RAW: ${last_raw_text.slice(0, 300)}` : '');
+    const error = new Error('AI_UNAVAILABLE: Gemini API call failed after retries');
+    error.status = 502;
+    throw error;
 }
 
 /*
@@ -356,6 +387,46 @@ async function run_with_cache({ cache_key, feature_name, user_id,
 }
 
 /*
+ * FUNCTION : enrich_plan_with_category_ids
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Gemini returns category_name only; BudgetGoal rows
+ *            require category_id. Map names to IDs before the
+ *            frontend saves goals.
+ *
+ * HOW      : 1. Load active system + user categories
+ *            2. Build case-insensitive name → id lookup
+ *            3. Attach category_id to each plan item
+ *            4. Reject unknown names with a clear 400 error
+ *
+ * @param   {string}   user_id
+ * @param   {object[]} plan_items
+ * @returns {object[]} plan items with category_id added
+ * @throws  {Error} status 400 if a category_name cannot be resolved
+ * ─────────────────────────────────────────────────────────
+ */
+async function enrich_plan_with_category_ids(user_id, plan_items) {
+    const categories = await category_model.find_active_for_user(user_id);
+    const name_to_id = new Map(
+        categories.map((cat) => [cat.name.toLowerCase().trim(), cat.id]),
+    );
+
+    return plan_items.map((item) => {
+        const lookup_key = item.category_name?.toLowerCase().trim();
+        const category_id = name_to_id.get(lookup_key);
+
+        if (!category_id) {
+            const err = new Error(
+                `Unknown category "${item.category_name}" — use exact names from your category list`,
+            );
+            err.status = 400;
+            throw err;
+        }
+
+        return { ...item, category_id };
+    });
+}
+
+/*
  * FUNCTION : plan_expenses
  * ─────────────────────────────────────────────────────────
  * WHY      : Users want AI to suggest how to allocate a target budget
@@ -384,7 +455,7 @@ async function run_with_cache({ cache_key, feature_name, user_id,
 async function plan_expenses(user_id, daily_limit, { target_budget, month, year }) {
     const cache_key = build_cache_key({ user_id, feature: 'plan', target_budget, month, year });
 
-    return run_with_cache({
+    const result = await run_with_cache({
         cache_key,
         feature_name: 'plan_expenses',
         user_id,
@@ -420,7 +491,8 @@ INSTRUCTIONS:
 - Allocations must sum to exactly ${target_budget}.
 - Each amount must be a string formatted as "0.00".
 - Use the exact category_name strings from the context — never use IDs.
-- Return ONLY a valid JSON array with no other text, preamble, or markdown.
+- Keep each reason to one short sentence, maximum 80 characters.
+- Return ONLY a complete, valid JSON array — no truncated output, no extra text.
 
 REQUIRED JSON SHAPE (array of objects):
 [
@@ -428,13 +500,16 @@ REQUIRED JSON SHAPE (array of objects):
     "category_name": "Food",
     "suggested_amount": "500.00",
     "percentage": "20.00",
-    "reason": "Based on your average monthly food spend of $480..."
+    "reason": "Matches your $480 monthly average."
   }
 ]
 `;
             return call_gemini_safe(prompt, plan_item_schema);
         },
     });
+
+    result.data = await enrich_plan_with_category_ids(user_id, result.data);
+    return result;
 }
 
 /*
@@ -509,6 +584,9 @@ INSTRUCTIONS:
 - adjust_spending: possible if the user cuts back in specific categories
 - If budget_goals exist, check whether this purchase would exceed relevant category budgets
 - Be specific — reference actual numbers from the context in your reasoning
+- suggested_adjustments must be an array of plain strings only, e.g.
+  ["Reduce dining out by $100", "Delay entertainment purchases until next month"]
+- Do NOT put objects inside suggested_adjustments
 - Return ONLY a valid JSON object matching the schema below, no markdown, no preamble.
 
 REQUIRED JSON SHAPE:
@@ -516,7 +594,7 @@ REQUIRED JSON SHAPE:
   "verdict": "can_afford",
   "reasoning": "Your current surplus of $${surplus} comfortably covers $${cost}...",
   "months_to_save": null,
-  "suggested_adjustments": []
+  "suggested_adjustments": ["Reduce dining out by $50"]
 }
 `;
             return call_gemini_safe(prompt, advise_schema);
@@ -629,4 +707,5 @@ module.exports = {
     advise_purchase,
     analyze_finances,
     get_user_ai_usage,
+    build_financial_context,
 };

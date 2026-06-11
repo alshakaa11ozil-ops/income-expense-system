@@ -44,6 +44,7 @@ export {
     logout_user,
     refresh_token,
     get_current_user,
+    change_password,
 } from './auth'
 
 // ── Categories & single-category budget goals ─────────────────

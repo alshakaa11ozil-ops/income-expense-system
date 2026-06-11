@@ -12,6 +12,7 @@
  *   - refresh     : POST /api/auth/refresh
  *   - logout      : POST /api/auth/logout
  *   - get_me      : GET  /api/auth/me
+ *   - change_password : PATCH /api/auth/me/password
  * ============================================================
  */
 
@@ -155,4 +156,27 @@ async function get_me(req, res, next) {
     }
 }
 
-module.exports = { register, login, refresh, logout, get_me };
+/*
+ * FUNCTION : change_password
+ * ─────────────────────────────────────────────────────────
+ * WHY      : Thin dispatcher to handle password change
+ * HOW      : Delegate to auth_service.change_password
+ * @param   {object}  req
+ * @param   {object}  res
+ * @param   {function} next
+ * ─────────────────────────────────────────────────────────
+ */
+async function change_password(req, res, next) {
+    try {
+        const result = await auth_service.change_password(
+            req.user.id,
+            req.body.current_password,
+            req.body.new_password
+        );
+        return send_success(res, result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+module.exports = { register, login, refresh, logout, get_me, change_password };

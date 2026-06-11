@@ -53,4 +53,11 @@ router.post('/logout', attach_user, auth_controller.logout);
  */
 router.get('/me', attach_user, auth_controller.get_me);
 
+/*
+ * PATCH /api/auth/me/password
+ * Allow the user to update their own password securely.
+ * Protected by attach_user.
+ */
+router.patch('/me/password', attach_user, auth_controller.change_password);
+
 module.exports = router;

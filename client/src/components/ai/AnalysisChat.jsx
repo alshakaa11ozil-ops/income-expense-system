@@ -17,6 +17,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { get_ai_error_message } from '../../utils/ai_error_helper'
 import { ai_analyze_finances } from '../../services/api'
+import { useToast } from '../layout/useToast'
 
 // ── Suggestion chips shown before first message ───────────────
 const SUGGESTION_CHIPS = [
@@ -48,6 +49,7 @@ const SUGGESTION_CHIPS = [
  * ─────────────────────────────────────────────────────────
  */
 export default function AnalysisChat({ on_request_complete }) {
+    const { show_toast } = useToast()
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
     const [is_loading, setIsLoading] = useState(false)
@@ -110,16 +112,17 @@ export default function AnalysisChat({ on_request_complete }) {
                 content: data.answer,
                 key_insights: data.key_insights ?? [],
             }])
+            show_toast('Analysis complete.', 'success')
             on_request_complete()
         } catch (err) {
-            // WHY append error as assistant message rather than state:
-            //   Keeps the conversation flow intact. User sees the error
-            //   in context — which question triggered it — rather than
-            //   a floating banner above the input.
+            const error_message = get_ai_error_message(err)
+            show_toast(error_message, 'error')
+            // WHY also append as assistant message: keeps chat context
+            // so the user sees which question failed.
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: get_ai_error_message(err),
+                content: error_message,
                 is_error: true,
             }])
         } finally {

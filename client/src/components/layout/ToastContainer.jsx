@@ -7,7 +7,7 @@
  *           a coloured icon, message, and close button.
  *           Toasts auto-dismiss via useToast — this component
  *           only handles visual rendering.
- * DEPENDS : useToast (for dismiss_toast)
+ * DEPENDS : toast_context (ToastProvider passes toasts + dismiss_toast)
  * ============================================================
  * EXPORTS:
  *   - ToastContainer : fixed-position toast stack

@@ -131,7 +131,7 @@ function LoginPage() {
     setIsSubmitting(true)
     try {
       await login_user(email, password)
-      navigate('/records')
+      navigate('/dashboard')
     } catch (err) {
       const status = err?.response?.status
       const message = err?.response?.data?.error

@@ -19,7 +19,6 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/auth_context'
 import { format_currency } from '../utils/format_currency'
 import { useToast } from '../components/layout/useToast'
-import ToastContainer from '../components/layout/ToastContainer'
 import RecordTable from '../components/records/RecordTable'
 import RecordForm from '../components/records/RecordForm'
 import SearchBar from '../components/records/SearchBar'
@@ -51,7 +50,7 @@ import {
  */
 export default function RecordsPage() {
     const { current_user } = useAuth()
-    const { toasts, show_toast, dismiss_toast } = useToast()
+    const { show_toast } = useToast()
     const [search_params, setSearchParams] = useSearchParams()
 
     // ── State ─────────────────────────────────────────────────
@@ -353,9 +352,6 @@ export default function RecordsPage() {
 
     return (
         <div className="min-h-screen bg-slate-100">
-            {/* Toast notifications — fixed top-right */}
-            <ToastContainer toasts={toasts} dismiss_toast={dismiss_toast} />
-
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-5">
 
                 {/* ── Toolbar ─────────────────────────────────────── */}

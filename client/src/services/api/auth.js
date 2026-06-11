@@ -83,3 +83,17 @@ export async function get_current_user() {
     const response = await api.get('/auth/me')
     return response.data.data
 }
+
+/*
+ * FUNCTION : change_password
+ * WHY      : Allows a user to update their own password from /profile.
+ *            Current password required to prevent unauthorized changes.
+ * @param   {string} current_password
+ * @param   {string} new_password
+ * @returns {{ message: string }}
+ * @throws  400 if current_password is wrong or new_password invalid
+ */
+export async function change_password(current_password, new_password) {
+    const response = await api.patch('/auth/me/password', { current_password, new_password })
+    return response.data.data
+}
